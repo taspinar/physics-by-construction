@@ -52,7 +52,7 @@ uv run --locked --extra physics-lab python -m pbc.products.physics_lab \
 
 The simulated and recorded routes need nothing beyond the default
 environment, so `--extra physics-lab` may be left out; it installs what the
-optional routes need (today the provider SDK of a live agent run).
+optional routes need (today the provider SDKs of a live agent run).
 
 Choose the route and the execution mode:
 
@@ -92,6 +92,13 @@ uv run --locked --extra physics-lab python -m pbc.products.physics_lab \
     --input products/physics-lab/examples/frequency-response.toml \
     --out my-trace.json
 ```
+
+`--provider anthropic` records with Claude instead (the key in
+`ANTHROPIC_API_KEY`, the model in `PBC_ANTHROPIC_MODEL`), and `--provider
+local` with a model on your own machine behind an OpenAI-compatible server
+such as Ollama (the model in `PBC_LOCAL_MODEL`, the server's address in
+`PBC_LOCAL_BASE_URL`, which must be on this machine); `docs/products.md`
+describes both.
 
 Without the confirmation of the circuit the command records nothing and
 asks the model nothing, and a run in which no measurement succeeded saves

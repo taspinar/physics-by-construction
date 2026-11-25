@@ -317,7 +317,9 @@ class MeteredClient:
     far, would cross it. A call whose usage the provider does not report
     cannot be counted: its message is dropped and the client stops, so an
     uncounted spend never runs on. The campaign then ends with what was
-    recorded."""
+    recorded. At prices of zero (a local model, #615) such a call costs
+    nothing and cannot cross the ceiling: it is counted at zero tokens,
+    marked as unreported in the summary, and the campaign goes on."""
 
     client: Any
     prices: Prices
@@ -338,8 +340,14 @@ class MeteredClient:
         return self.spent_before + sum(c["cost_eur"] for c in self.calls)
 
     @property
+    def free(self) -> bool:
+        return (
+            self.prices.input_eur_per_mtok == 0 and self.prices.output_eur_per_mtok == 0
+        )
+
+    @property
     def unmetered(self) -> bool:
-        return any(not c["usage_reported"] for c in self.calls)
+        return not self.free and any(not c["usage_reported"] for c in self.calls)
 
     @property
     def stopped(self) -> bool:
@@ -380,7 +388,7 @@ class MeteredClient:
                 "usage_reported": reported,
             }
         )
-        if not reported:
+        if not reported and not self.free:
             return self._stop()
         return message
 

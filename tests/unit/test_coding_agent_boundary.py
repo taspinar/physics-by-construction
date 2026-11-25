@@ -381,14 +381,28 @@ def reads_the_harness_key(source: str, holders: set[str] = frozenset()) -> bool:
     Python reads a variable of the environment. A message or a docstring
     that tells the learner to set the variable does neither."""
 
+    tree = ast.parse(source)
+    # A module that binds a holder's name to another variable (its own
+    # provider's key) means that variable by the bare name; through an
+    # attribute (``openai.KEY_VARIABLE``) the name is still the harness key.
+    own = {
+        target.id
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Constant)
+        and node.value.value != HARNESS_KEY
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+
     def is_key(node: ast.AST) -> bool:
         return (
             (isinstance(node, ast.Constant) and node.value == HARNESS_KEY)
-            or (isinstance(node, ast.Name) and node.id in holders)
+            or (isinstance(node, ast.Name) and node.id in holders - own)
             or (isinstance(node, ast.Attribute) and node.attr in holders)
         )
 
-    for node in ast.walk(ast.parse(source)):
+    for node in ast.walk(tree):
         if isinstance(node, ast.Call):
             values = [*node.args, *(keyword.value for keyword in node.keywords)]
         elif isinstance(node, ast.Subscript):
@@ -402,6 +416,11 @@ def reads_the_harness_key(source: str, holders: set[str] = frozenset()) -> bool:
 
 EXECUTED_CELL = re.compile(r"(?ms)^```\{python[^}\n]*\}\n(.*?)^```")
 HARNESS_CLIENT = "src/pbc/agents/clients/openai.py"
+# The provider keys a client module of the harness may name: each the key of
+# its own provider, read through pbc.agents.secrets (#615). ANTHROPIC_API_KEY
+# is also a coding agent's credential; only the Claude client of the harness
+# names it, and nothing in CI, the checks, or a page does.
+CLIENT_CREDENTIALS = {"src/pbc/agents/clients/anthropic.py": {"ANTHROPIC_API_KEY"}}
 
 
 def pages() -> list[str]:
@@ -798,6 +817,12 @@ def test_a_module_that_reads_the_harness_key_is_found():
     bound = 'KEY_VARIABLE = "OPENAI_API_KEY"\nsecret = Secret.read(KEY_VARIABLE)'
     assert reads_the_harness_key(bound, {"KEY_VARIABLE"})
     assert reads_the_harness_key("os.environ[openai.KEY_VARIABLE]", {"KEY_VARIABLE"})
+    # another client binds the same name to its own provider's key
+    other = 'KEY_VARIABLE = "ANTHROPIC_API_KEY"\nsecret = Secret.read(KEY_VARIABLE)'
+    assert not reads_the_harness_key(other, {"KEY_VARIABLE"})
+    assert reads_the_harness_key(
+        other + "\nos.environ[openai.KEY_VARIABLE]", {"KEY_VARIABLE"}
+    )
     # telling the learner to set the variable reads nothing
     assert not reads_the_harness_key('HINT = " (with OPENAI_API_KEY set)"')
     assert not reads_the_harness_key(
@@ -936,9 +961,13 @@ def test_no_module_page_product_or_test_starts_a_coding_agent():
 def test_no_credential_of_a_coding_agent_is_named_in_ci_or_the_build():
     suites = tuple(PYTHON_SUITES)
     found = {
-        path: match.group(0)
+        path: sorted(named)
         for path in (*build_inputs(), *pages(), ".env.example")
-        if not path.startswith(suites) and (match := CREDENTIALS.search(read(path)))
+        if not path.startswith(suites)
+        and (
+            named := {m.group(0) for m in CREDENTIALS.finditer(read(path))}
+            - CLIENT_CREDENTIALS.get(path, set())
+        )
     }
     for name, command in shell_like().items():
         if name.startswith("verify") and (match := CREDENTIALS.search(command)):
@@ -949,6 +978,11 @@ def test_no_credential_of_a_coding_agent_is_named_in_ci_or_the_build():
     assert {LAUNCHER, "tests/agent-test.sh", "tests/lib-fakes.sh"} <= set(
         build_inputs()
     )
+    # The allowance is for exactly the client that reads the key, and it
+    # names it: a stale entry fails here.
+    for path, names in CLIENT_CREDENTIALS.items():
+        assert path in build_inputs(), path
+        assert {m.group(0) for m in CREDENTIALS.finditer(read(path))} == names
 
 
 def test_a_test_names_such_a_credential_only_to_remove_it():

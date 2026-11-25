@@ -18,9 +18,26 @@ FORBIDDEN_IMPORTS = {
     "codeop", "runpy", "pty",
 }  # fmt: skip
 FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "open", "input"}
-# The provider SDK is imported in exactly one module.
-SDK = "openai"
-SDK_MODULE = AGENTS / "clients" / "openai.py"
+# A provider SDK is imported only in the modules of pbc.agents.clients, one
+# SDK per module: the client of its provider (#615). The local client speaks
+# the OpenAI-compatible API through the openai SDK.
+CLIENTS = AGENTS / "clients"
+CLIENT_SDKS = {
+    CLIENTS / "openai.py": "openai",
+    CLIENTS / "anthropic.py": "anthropic",
+    CLIENTS / "local.py": "openai",
+}
+SDKS = set(CLIENT_SDKS.values())
+# The environment variables each client module reads, all of its own
+# provider, through ``pbc.agents.secrets`` (a key with
+# ``Secret.from_environment``, a setting with ``read_setting``). No other
+# module reads one.
+CLIENT_VARIABLES = {
+    CLIENTS / "openai.py": {"OPENAI_API_KEY"},
+    CLIENTS / "anthropic.py": {"ANTHROPIC_API_KEY", "PBC_ANTHROPIC_MODEL"},
+    CLIENTS / "local.py": {"PBC_LOCAL_BASE_URL", "PBC_LOCAL_MODEL"},
+}
+READERS = {"from_environment", "read_setting"}
 # importlib selects the provider module from a configuration string; model
 # output never reaches it.
 IMPORTLIB_MODULE = AGENTS / "providers.py"
@@ -55,8 +72,10 @@ def test_no_dangerous_import_or_call(source):
         if root == "os" and source == ENVIRONMENT_MODULE:
             continue
         assert root not in FORBIDDEN_IMPORTS, f"{source.name} imports {module}"
-        if root == SDK:
-            assert source == SDK_MODULE, f"{source.name} imports the provider SDK"
+        if root in SDKS:
+            assert CLIENT_SDKS.get(source) == root, (
+                f"{source.name} imports the provider SDK {root}"
+            )
         if root == "importlib":
             assert source == IMPORTLIB_MODULE
     for node in ast.walk(tree):
@@ -92,3 +111,67 @@ def test_the_environment_module_uses_only_os_environ():
         and node.value.id == "os"
     }
     assert used == {"environ"}
+
+
+def variables_read(tree: ast.Module) -> list[str | None]:
+    """The names of the environment variables ``tree`` hands to a reader of
+    ``pbc.agents.secrets``, each as its text or through a module-level name
+    bound to it; None for an argument that is neither."""
+    bound = {
+        target.id: node.value.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        function = node.func
+        name = (
+            function.attr
+            if isinstance(function, ast.Attribute)
+            else (function.id if isinstance(function, ast.Name) else None)
+        )
+        if name not in READERS:
+            continue
+        for value in [*node.args, *(keyword.value for keyword in node.keywords)]:
+            if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                found.append(value.value)
+            elif isinstance(value, ast.Name):
+                found.append(bound.get(value.id))
+            else:
+                found.append(None)
+    return found
+
+
+def test_the_clients_are_the_modules_of_their_package():
+    assert sorted(CLIENT_SDKS) == sorted(
+        p for p in CLIENTS.glob("*.py") if p.name != "__init__.py"
+    )
+    assert set(CLIENT_VARIABLES) == set(CLIENT_SDKS)
+
+
+@pytest.mark.parametrize(
+    "source", SOURCES, ids=lambda p: p.relative_to(AGENTS).as_posix()
+)
+def test_only_a_client_reads_the_environment_and_only_its_own_variables(source):
+    read = variables_read(ast.parse(source.read_text()))
+    if source in CLIENT_VARIABLES:
+        assert read, f"{source.name} reads no variable of its provider"
+        assert set(read) <= CLIENT_VARIABLES[source], (source.name, read)
+    else:
+        assert read == [], f"{source.name} reads the environment: {read}"
+
+
+def test_the_scan_of_environment_reads_sees_a_planted_read():
+    planted = ast.parse(
+        'KEY = "OPENAI_API_KEY"\n'
+        "a = Secret.from_environment(KEY)\n"
+        'b = read_setting("PBC_LOCAL_MODEL")\n'
+        "c = read_setting(name=other)\n"
+    )
+    assert variables_read(planted) == ["OPENAI_API_KEY", "PBC_LOCAL_MODEL", None]

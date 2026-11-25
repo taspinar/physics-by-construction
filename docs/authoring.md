@@ -2216,7 +2216,10 @@ has no claim type, and is never "the models are equal".
 
 To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
-page explains it. Only that provider's key is needed then.
+page explains it. Only that provider's key is needed then. Beside the
+OpenAI client, the clients for Claude (`anthropic`) and for a local model
+(`local`) exist (#615); the Physics Lab's recordings choose one with
+`--provider` (`docs/products.md`), while `PROVIDER` stays `"openai"`.
 
 ## Coding-agent exercises
 

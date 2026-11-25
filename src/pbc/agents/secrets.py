@@ -59,6 +59,14 @@ class Secret:
         raise TypeError("a Secret is not serialised")
 
 
+def read_setting(name: str) -> str | None:
+    """The value of the environment variable ``name``, stripped, or None when
+    it is unset or empty: a client's configuration that is not a credential
+    (a model, a local address). Only the client modules read one, each the
+    variables of its own provider (``tests/unit/test_agents_boundary.py``)."""
+    return os.environ.get(name, "").strip() or None
+
+
 def redact(text: str, *secrets: Secret) -> str:
     """``text`` with every occurrence of each secret replaced."""
     for secret in secrets:

@@ -22,11 +22,13 @@ Subcommands:
   or ``live``; ``--resume`` continues an interrupted campaign from its
   checkpoint in ``--out``;
 - ``record-campaign`` (F145): record an agent campaign's trace on the
-  simulated bench with ``--provider``, the recorder's prices, and the
-  required ``--spend-ledger``, counting the spend across recordings and
-  stopping at ``--ceiling-eur`` (or before a call that would cross it, or
-  after a call whose usage the provider does not report), or with
-  ``--scripted`` (a placeholder).
+  simulated bench with ``--provider`` (``openai``, ``anthropic``, or
+  ``local``; ``pbc.agents.clients``), the recorder's prices (none for
+  ``local``, whose tokens cost nothing), and the required
+  ``--spend-ledger``, counting the spend across recordings and stopping at
+  ``--ceiling-eur`` (or before a call that would cross it, or after a call
+  whose usage the provider does not report, unless its prices are zero),
+  or with ``--scripted`` (a placeholder).
 
 The interlock ``circuit-confirmed`` is the learner's own confirmation that
 the prepared circuit is connected: ``circuit_confirmed = true`` in the
@@ -150,9 +152,9 @@ def main(argv: list[str] | None = None) -> int:
 
         client, placeholder = ScriptedClient(config), True
     else:
-        from pbc.agents.providers import load_client
-
-        client, placeholder = load_client(arguments.provider), False
+        client, placeholder = _live_client(arguments.provider), False
+        if client is None:
+            return 2
     try:
         transcript = workflow.record_trace(
             config,
@@ -203,6 +205,21 @@ def _print_record(record) -> None:
     )
 
 
+def _live_client(provider: str):
+    """The live client of ``provider``, or None after a one-line message
+    when it cannot be set up: an unknown provider, a missing key or SDK, a
+    local address that is not a loopback address, or no local model. The
+    clients' errors (``MissingKey``, each client's ``ProviderError``) are
+    ``RuntimeError``s whose messages never contain a key."""
+    from pbc.agents.providers import load_client
+
+    try:
+        return load_client(provider)
+    except (ValueError, ModuleNotFoundError, RuntimeError) as error:
+        print(f"no client for {provider!r}: {error}", file=sys.stderr)
+        return None
+
+
 def _campaign_main(arguments) -> int:
     from pbc.products.physics_lab import agent_campaign, bench, lab
 
@@ -213,13 +230,6 @@ def _campaign_main(arguments) -> int:
         if arguments.scripted:
             client, placeholder = agent_campaign.ScriptedCampaignClient(plan), True
         else:
-            if arguments.price_in is None or arguments.price_out is None:
-                print(
-                    "a live recording needs --price-in and --price-out (EUR per"
-                    " million tokens)",
-                    file=sys.stderr,
-                )
-                return 2
             if arguments.spend_ledger is None:
                 print(
                     "a live recording needs --spend-ledger (a file outside the"
@@ -227,8 +237,6 @@ def _campaign_main(arguments) -> int:
                     file=sys.stderr,
                 )
                 return 2
-            from pbc.agents.providers import load_client
-
             spent = agent_campaign.spent_so_far(arguments.spend_ledger)
             if spent >= arguments.ceiling_eur:
                 print(
@@ -237,9 +245,24 @@ def _campaign_main(arguments) -> int:
                     file=sys.stderr,
                 )
                 return 1
+            live = _live_client(arguments.provider)
+            if live is None:
+                return 2
+            # A client with prices of its own (a local model, at zero) needs
+            # none from the recorder; any other needs both.
+            own = getattr(live, "prices_eur_per_mtok", None) or (None, None)
+            price_in = own[0] if arguments.price_in is None else arguments.price_in
+            price_out = own[1] if arguments.price_out is None else arguments.price_out
+            if price_in is None or price_out is None:
+                print(
+                    "a live recording needs --price-in and --price-out (EUR per"
+                    " million tokens)",
+                    file=sys.stderr,
+                )
+                return 2
             client = agent_campaign.MeteredClient(
-                load_client(arguments.provider),
-                agent_campaign.Prices(arguments.price_in, arguments.price_out),
+                live,
+                agent_campaign.Prices(price_in, price_out),
                 arguments.ceiling_eur,
                 spent,
             )
