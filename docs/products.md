@@ -978,9 +978,11 @@ on that record (2026-11-25); decision 42 allows a no-go or a narrower go
 at an exhausted limit, never an extension.
 
 **The feature** is the ring-down fit of the transient-response protocol:
-the starter gains the skeleton `my_lab/ringdown.py`, its
-`SPECIFICATION.md`, and twelve provided tests, the common task of the
-three runs, unchanged. The starter's `tests/conftest.py` skips them while
+the starter gains the skeleton
+`products/physics-lab/starter/my_lab/ringdown.py`, its
+`products/physics-lab/starter/SPECIFICATION.md`, and twelve provided
+tests, the common task of the three runs, unchanged. The starter's
+`products/physics-lab/starter/tests/conftest.py` skips them while
 the skeleton raises `NotImplementedError`, so the `starters` check stays
 green and still imports them at the pin;
 `tests/unit/test_starter_ringdown.py` shows in a copy of the starter that
@@ -994,10 +996,11 @@ a template each passed the twelve tests within minutes (the agent: 164 s,
 limit. Run on after the limit with a reviewer of a second provider, as a
 separate observation outside the pilot's result, it reached one after
 about 109 minutes of active time in all; that command is marked so in
-`ROUTES.md`. Every run was made by a model or the supervisor session,
-inside a subscription, with no per-call billing; no learner was timed, so
-the workload of Path 1 stays open question 22, and `ROUTES.md` gives only
-an estimate of the feature's size, labelled as from one pilot. The gaps
+`products/physics-lab/ROUTES.md`. Every run was made by a model or the
+supervisor session, inside a subscription, with no per-call billing; no
+learner was timed, so the workload of Path 1 stays open question 22, and
+`products/physics-lab/ROUTES.md` gives only an estimate of the feature's
+size, labelled as from one pilot. The gaps
 for Agent Codeyard (a configuration check that passes a refused review,
 retries of a configuration error, a planning that enlarges a small task,
 the template's own red first CI run, no place for a given failing test
@@ -1006,7 +1009,7 @@ gap is this repository's own: rule 2 of the sandbox profile of
 `docs/coding-agent-workflow.md` names commands only, and the agent's file
 tool wrote outside its scratch copy; the profile is restated on the pages
 of the exercises, so its change is a follow-up of its own, and
-`ROUTES.md` states the precaution meanwhile.
+`products/physics-lab/ROUTES.md` states the precaution meanwhile.
 The boundary test (`tests/unit/test_coding_agent_boundary.py`) now knows
 the template by both names: no file of the build or the checks depends
 on it.
