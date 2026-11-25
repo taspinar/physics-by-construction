@@ -1,0 +1,833 @@
+---
+title: "Capstone: the Autonomous Physics Lab"
+description: >-
+  A local application that runs three experiment protocols on electronic
+  circuits through a guarded instrument, refuses bad measurements, checks
+  each protocol independently, compares an agent route with classical
+  ones, and exports raw data, a report, and an evidence package; run here
+  on the simulator, and set against one real circuit's measured record.
+lesson:
+  id: autonomous-physics-lab
+  strand: agents-llm
+  order: 25
+  difficulty: 3
+  course: electromagnetism
+  slot: SA9
+  experiment: pbc.electromagnetism.experiments.autonomous_physics_lab
+  methods: [simulation, measured-data]
+  outcomes:
+    - Name what lets a program, a person's or an agent's, run experiments on a real circuit safely, and say in which layer each safeguard lives
+    - Run three physically distinct protocols on one product and read each result with its interval and its own independent check
+    - Detect an invalid measurement, keep it out of every fit, and follow the refinement and repetition a campaign records
+    - Explain why agreement with a closed form checks a simulator but not a real circuit, and use the agreement of two protocols instead
+    - Compare an agent route with an adaptive policy and a scripted sweep by the measurements each needs, and say what such a comparison cannot show
+  related: []
+  format: 2
+  preview: fig-frequency-response
+  prerequisites:
+    lessons: [measurement-campaigns, measurement-quality, agent-experiment]
+    outside:
+      - "Statistics: the standard error of a mean, and the error of a difference of two independent estimates"
+      - "Numerical methods: nonlinear least squares and the covariance of its parameters"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism.experiments import autonomous_physics_lab as experiment
+from pbc.instruments.contract import Instrument
+from pbc.products.physics_lab import (
+    agent_campaign,
+    campaign,
+    estimates,
+    lab,
+    nonlinear,
+    resonance,
+    ringdown,
+)
+
+result = experiment.run()
+lesson_header()
+```
+
+The lessons of this path built the parts one by one: an experiment written
+down before it runs, code that is verified before it is trusted, one small
+interface for a simulator and an instrument, a quality gate for what an
+instrument records, a bounded agent, campaigns that refine and resume, and
+reports whose numbers can be traced. This capstone puts them together into
+one program you can install and run on your own machine, and asks the
+question the parts cannot answer alone: **what has to be in place before a
+program, yours or an agent's, may run experiments on a real circuit, and how
+would anyone know that the numbers it reports are right when no closed form
+is there to check them?**
+
+The program is the *Autonomous Physics Lab*, the package
+`pbc.products.physics_lab` with its learner material in
+`products/physics-lab/`. This page shows what it is made of, shows the
+essential code of the real modules, runs its reference workflow, and ends with
+what you can build on it. It is an educational and experimental tool, not a
+certified laboratory instrument.
+
+**What kind of evidence this page shows.** Every campaign on the page is run
+by the build, now, on the simulated bench: a model of the circuit with seeded
+noise behind the same guarded instrument a real device sits behind. One table
+and one figure are different: they show the measured record of one real
+circuit, the declared dataset `ad3-rlc-pilot`, replayed and not measured
+again. The agent route is replayed from a committed trace that a scripted
+policy wrote, not a language model; the page says so wherever it shows it,
+and it presents no campaign as a model's. Of the three protocols, only the
+frequency response has run on the real device, in that one recorded pilot;
+the ring-down and the LED pair are simulator-only until they are measured at
+the bench.
+
+## Assumptions
+
+**The brief.** The requirements come first, in words, apart from the choices
+this lab makes to meet them.
+
+1. **Safe on a real bench.** Nothing a route asks for may drive the circuit
+   outside a declared envelope of amplitude, frequency, and sampling, or past
+   a stop; a circuit is never rewired by the program, and the output stays
+   off until a person confirms the circuit that is connected.
+2. **Three distinct protocols.** Three measurements that differ in their
+   physics, not one measurement with a parameter changed, each with its own
+   independent numerical check.
+3. **Bad data never fitted.** A measurement that is clipped, has lost
+   samples, is undersampled, or does not see the excitation is detected,
+   recorded with its reason, and kept out of every fit.
+4. **Results with intervals.** The resonance frequency $f_0$ and the quality
+   factor $Q$ come with standard errors, per protocol.
+5. **Every route on the same footing.** An agent's campaign stands beside a
+   classical adaptive policy and a scripted sweep, compared by the
+   measurements each needs.
+6. **Evidence a third party can check.** Every campaign exports its raw
+   samples, a report, and an evidence package that names the execution mode;
+   an evaluator recomputes the results from the raw samples, never from the
+   route's numbers or the agent's words.
+7. **Runs without hardware or an account.** The reference workflow runs on
+   the simulator with no device and no model key.
+
+**The choices.** The envelope and the stop live in `pbc.instruments`, below
+every route. The protocols are a frequency response and a ring-down of one
+series RLC circuit, and the amplitude response of two light-emitting diodes
+in anti-parallel. The quality gate is the one of the measurement-quality
+lesson. The adaptive policy is bisection of the bracket around the resonance,
+as in the campaign lesson.
+
+**The assumptions of the protocols.**
+
+1. **The circuit is the declared topology.** A series resistor, coil, and
+   capacitor, or a resistor and the diode pair, wired as the confirmation
+   states. The parts' values may differ from their labels; the topology may
+   not, and nothing in the program can detect a wrong one.
+2. **Linear, time-invariant RLC.** The two RLC protocols assume a
+   second-order linear system whose parts do not change with frequency or
+   during a campaign. A real coil's loss grows with frequency; then the two
+   protocols need not agree.
+3. **A memoryless, symmetric pair.** The diode protocol assumes two diodes of
+   one kind, each following the Shockley form, with no capacitance at the
+   drive frequency.
+4. **Independent noise.** Each acquisition draws new noise, so repeated
+   measurements estimate it; a drifting bench would make the intervals too
+   small.
+
+## Understand: what lets an agent run real experiments safely {#explanation}
+
+Take the question at its sharpest. A language model is given tools that drive
+a function generator and read an oscilloscope on your desk. What stops it from
+putting five volts across a part rated for two, from fitting a measurement
+whose samples were lost, or from reporting a resonance it never measured?
+Not its instructions. Each of these is stopped by a layer of the program that
+the model never touches, and the lab has five of them.
+
+**The instrument contract and its envelope.** Every route, the scripted sweep,
+the adaptive policy, and the agent, reaches the bench only through one guarded
+`Instrument`. Before any call reaches the device, it checks the request against
+the envelope:
+
+```{python}
+#| label: envelope
+#| echo: false
+result.table("envelope")
+```
+
+and refuses what lies outside it, what follows a stop, and what comes before
+the person at the bench has confirmed the circuit. Here are four requests
+and the answers:
+
+```{python}
+#| label: refusals
+#| echo: false
+result.table("refusals")
+```
+
+[None of the four refused requests reached the bench: the call log below the
+guard recorded `{python} result["calls-reaching-bench"]` device
+calls.]{.claim type="numerically-verified" scope="the simulated bench behind a
+call log; the four requests of the table" evidence="refusals"} The
+confirmation the person gives is about a circuit stated in words, and the
+program never rewires one; a different circuit is a manual change that is
+confirmed again:
+
+```{python}
+#| echo: false
+print(result.output("confirmation"), end="")
+```
+
+**The quality gate.** A capture is judged before any number is read from it:
+clipping at the rails of the execution mode, samples lost beyond
+`{python} result["max-missing"]` per cent,
+sampling at or below the Nyquist rate of the highest frequency the protocol
+reads, a missing calibration, and a source channel that does not carry the
+excitation. An invalid capture is recorded with its reason, exported, retried
+once by the adaptive policy, and never fitted.
+
+**Three protocols, three kinds of physics.** The *frequency response* drives
+the circuit with a sine and reads the steady state: the gain and phase of the
+capacitor voltage against the source at one frequency, then a weighted fit of
+the second-order response $H(f) = k / (1 - x^2 + i x/Q)$, $x = f/f_0$, to all
+of them. The *ring-down* drives it with a step and reads the free decay: the
+capacitor voltage oscillates at the damped frequency $\omega_d$ and decays at
+the rate $\alpha$, and $\omega_0 = \sqrt{\omega_d^2 + \alpha^2}$,
+$Q = \omega_0 / 2\alpha$. The *amplitude response* drives two diodes in
+anti-parallel behind a resistor and reads how the gain at the fundamental
+falls and the third harmonic grows as the amplitude rises, then fits the
+diodes' characteristic $v = n V_T \operatorname{asinh}(i / 2 I_s)$. The first
+two measure the same circuit by different physics, a steady state and a
+transient; the third is not linear at all.
+
+**Checks that do not trust the route.** On the simulator each protocol is
+checked against the closed form of the simulated circuit, which the route
+never sees. On a real circuit there is no closed form to trust: the parts
+differ from their labels. There the check is that two physically different
+protocols on the same circuit agree within their intervals, and, for the
+diodes, that the characteristic fitted at the largest amplitude predicts the
+gain at every other one.
+
+**The evidence package and the evaluator.** Every campaign writes its raw
+samples, its measurements, a report with figures, a run record naming the
+execution mode, and the evaluator's ledger. The evaluator reads the raw
+samples again and recomputes every number with the protocols' own analysis.
+
+### What each feature exercises
+
+Each feature of the lab is a lesson of this path at work. Reading the list
+from the top is a way to revise the path:
+
+- The plan of a campaign, its protocols, targets, and budget, written before
+  the first measurement: *from research question to experiment
+  specification*, to state the protocol, the tolerances, and the stopping
+  rule before running.
+- The protocols' analysis, checked against closed forms in the unit tests and
+  against each other on the bench: *building and verifying scientific
+  simulation tools*, to verify code against physics instead of trusting it.
+- The instrument contract with three execution modes, the envelope, and the
+  stop: *connecting simulators and instruments*, to use one interface for a
+  simulator, a recorded sample, and a device.
+- The quality gate in every protocol: *measurement quality and multimodal
+  observations*, to detect clipping, lost samples, and undersampling before
+  a fit.
+- The agent's tools, one per protocol, with a budget: *building a bounded
+  experiment agent*, to give an agent only allowlisted, validated operations.
+- The campaign with refinement, repetition, checkpoints, and resume:
+  *running adaptive and resumable measurement campaigns*, to link each
+  measurement to the evidence it follows from.
+- The independent checks of a real circuit: *counterexamples, physical
+  constraints, and falsification*, to seek the test that can fail.
+- The report whose numbers come from the evaluator: *traceable explanations
+  and experiment reports*, to tie every statement to a record.
+
+## Construct: the essential code {#code}
+
+The excerpts below are the real modules of the product, read when this page
+was built. Each is the part of a function that carries the step; the rest is
+one link away.
+
+### The envelope, before the device
+
+The guarded instrument switches the output on only after the waveform, the
+amplitude, the frequency, the current bound, and the interlocks have passed:
+
+```{python}
+#| echo: false
+excerpt(Instrument, lines=(21, 51))
+```
+
+The order matters: every check comes before `self._call`, the one place a
+driver is called, and a stop that lands while the output is being switched
+on switches it off again.
+
+### One measured point
+
+A capture that has passed the gate is read by fitting a sine to each channel
+and taking the ratio of the response to the source:
+
+```{python}
+#| echo: false
+excerpt(resonance.analyse_point, region="point")
+```
+
+The phase is put into the range the protocol reports, so that the resonance
+is where it crosses $-90°$; the standard errors of the two fits are carried
+into the gain and the phase.
+
+### A campaign step, and the sweep with its refinement
+
+Every route measures through the same method of the campaign, which refuses a
+step outside the plan, beyond the budget, or one that names a measurement the
+campaign did not make, then calls the protocol, records the measurement, valid
+or not, and writes the checkpoint:
+
+```{python}
+#| echo: false
+excerpt(campaign.Campaign, lines=(25, 74))
+```
+
+The classical adaptive policy decides the next frequency from the records so
+far: a retry of a refused measurement first, then the sweep, then the middle
+(in $\log f$) of the narrowest bracket of $-90°$, until the interval of $f_0$
+reaches its target:
+
+```{python}
+#| echo: false
+excerpt(campaign._next_frequency_response)
+```
+
+The loop of a segment asks the policy, executes, and stops when the policy is
+done or the budget is spent; the output is switched off on every way out of
+it:
+
+```{python}
+#| echo: false
+excerpt(campaign.run_segment, region="segment")
+```
+
+### The ring-down fit
+
+The free decay after a step is fitted with five parameters, started from the
+record's spectrum and a coarse search of the decay rate; for fixed rates the
+model is linear in the other three:
+
+```{python}
+#| echo: false
+excerpt(ringdown.fit_ringdown, region="fit")
+```
+
+$f_0$ and $Q$ follow from $\alpha$ and $\omega_d$, and their standard errors
+are propagated from the covariance of the two. This is the fit you write
+yourself in the starter (the first exercise).
+
+### The nonlinear response
+
+At one amplitude the protocol fits the odd harmonics of the response, and
+reads the gain at the fundamental and the ratio of the third harmonic to it:
+
+```{python}
+#| echo: false
+excerpt(nonlinear.analyse_amplitude, region="harmonics")
+```
+
+The held-out check then predicts the gain at another amplitude from the
+characteristic fitted at the largest one, by solving the circuit with the
+fitted diodes:
+
+```{python}
+#| echo: false
+excerpt(nonlinear.predict_gain, region="predict")
+```
+
+### The bounded tool
+
+An agent gets one tool per protocol of the plan. Each tool does one thing:
+it asks the campaign to execute a step, so the plan, the budget, the basis,
+the gate, and the envelope all apply to it, and a refusal reaches the agent
+as a tool error:
+
+```{python}
+#| echo: false
+excerpt(agent_campaign.campaign_tools, region="tool")
+```
+
+What the tool returns is what a learner would read off the bench, the gate's
+verdict and the numbers with their errors, never the circuit's values.
+
+### The evaluator's independent check
+
+Two estimates agree when they differ by at most twice their combined standard
+error:
+
+```{python}
+#| echo: false
+excerpt(estimates.agreement, region="agreement")
+```
+
+and the check of a series RLC circuit applies it to $f_0$ and $Q$ of the two
+protocols:
+
+```{python}
+#| echo: false
+excerpt(lab.consistency, region="consistency")
+```
+
+## Experiment: the reference workflow on the simulator {#worked-examples}
+
+The page now runs the reference workflow of `products/physics-lab/`, with
+its example inputs, on the simulated bench: the series RLC campaign, the LED
+pair, the agent route beside the classical ones, and then two circuits that
+are not what they were declared to be.
+
+### The series RLC campaign
+
+The plan `campaign-series-rlc.toml` declares the circuit of the RLC lesson,
+whose closed form gives $f_0 =$ `{python} result["f0"]` Hz and
+$Q =$ `{python} result["q"]`; the campaign never sees these. It runs the
+frequency response (a sweep of `{python} result["sweep-points"]` points, then
+refinement until the interval of $f_0$ is narrower than
+`{python} result["f0-target"]` per cent) and the ring-down (at least
+`{python} result["ringdowns"]` repetitions, more until the interval of $Q$ is
+narrower than `{python} result["q-target"]` per cent), within a budget of
+`{python} result["budget"]` measurements. One change is made on purpose: the
+link between the bench and the program loses samples in one acquisition,
+below the guarded instrument, where a loose cable or a busy USB link loses
+them:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="lossy-link")
+```
+
+```{python}
+#| label: campaign-measurements
+#| echo: false
+result.table("campaign-measurements")
+```
+
+The campaign ended `{python} result["segment-status"]` after
+`{python} result["measurements"]` measurements, of which
+`{python} result["invalid"]` was refused. Measurement
+`{python} result["invalid-id"]`, a refinement, was refused by the gate: the
+link lost samples of both channels, more than the gate allows. The policy
+repeated it as `{python} result["retry-id"]`, which names the refused one as
+its basis, and the next refinement follows from the retry, not from the
+refused measurement. The refinement took `{python} result["refinements"]`
+steps, each halving the bracket in $\log f$; the ring-downs were repeated
+until both their count and the interval of $Q$ met the plan. The run record
+of the export names the fault in the device's identity
+("`{python} result["link"]`") and the execution mode,
+`{python} result["execution-modes"]`.
+
+```{python}
+#| label: fig-frequency-response
+#| echo: false
+#| fig-cap: "The frequency response of the campaign: every valid measurement with its standard error, and the second-order response the evaluator fitted to them. The refused measurement is not drawn and not fitted; the refinement crowds the points around the phase crossing of minus ninety degrees."
+#| fig-status: simulated
+#| fig-alt: "Two stacked panels against frequency on a logarithmic axis. Top, log-log: the gain as dots, flat near one at low frequency, rising to a peak, then falling steeply; a dashed fitted curve passes through every dot. Bottom: the phase as dots falling from near zero through a dotted horizontal line at minus ninety degrees to near minus one hundred eighty; several dots cluster just above and below the line; the dashed fitted curve follows them."
+result.show("fig-frequency-response")
+```
+
+The evaluator fitted the `{python} result["valid-points"]` valid points,
+recomputed from `raw.csv`, with a reduced chi-square of
+`{python} result["reduced-chi2"]`: the scatter of the points about the fitted
+curve is what their standard errors lead one to expect.
+
+```{python}
+#| label: fig-ringdown
+#| echo: false
+#| fig-cap: "One ring-down after the step: the capacitor voltage the fit used, the fitted damped oscillation, and the residuals below. The residuals show noise and no structure, so the model of a single damped oscillation is enough here."
+#| fig-status: simulated
+#| fig-alt: "Two stacked panels against time in milliseconds. Top: the capacitor voltage as small dots, starting below one volt, overshooting well above it, then oscillating about one volt with an amplitude that shrinks to nothing within about a fifth of the record; a dashed fitted curve lies on the dots. Bottom: the residuals in millivolts, scattered evenly about zero over the whole record."
+result.show("fig-ringdown")
+```
+
+The fit of this ring-down, the first of the campaign, used
+`{python} result["ring-samples"]` samples.
+Now the two checks:
+
+```{python}
+#| label: simulator-checks
+#| echo: false
+result.table("simulator-checks")
+```
+
+```{python}
+#| label: consistency
+#| echo: false
+result.table("consistency")
+```
+
+[Both protocols recover the closed form of the simulated circuit within three
+standard errors and the tolerances of the protocol, and they agree with each
+other on $f_0$ and on $Q$ within two combined standard errors.]{.claim
+type="numerically-verified" scope="the simulated bench with its seeded noise
+and the plan campaign-series-rlc.toml; a check of the protocols against the
+model, no measurement" evidence="simulator-checks consistency"} The ring-down
+gives the wider interval, because one free decay holds a few periods and the
+frequency response pins $f_0$ with points on both sides of the phase crossing.
+On the simulator the two checks say the same thing. The worked example after
+next shows a circuit where they do not.
+
+The export holds what a third party needs to check all of this without
+running the campaign again:
+
+```{python}
+#| label: export
+#| echo: false
+result.table("export")
+```
+
+### The LED pair
+
+The plan `campaign-led-pair.toml` drives two LEDs of one colour in
+anti-parallel behind a resistor at a list of amplitudes up to the envelope's
+limit, then refines between the two amplitudes where the gain changes most.
+
+```{python}
+#| label: fig-amplitude-response
+#| echo: false
+#| fig-cap: "The amplitude response of the LED pair: the gain at the fundamental stays at one while the diodes do not conduct and falls once they do, while the third harmonic grows from nothing. The gain predicted from the characteristic fitted at the largest amplitude alone lies on every other measurement."
+#| fig-status: simulated
+#| fig-alt: "Two stacked panels against the source amplitude in volts. Top: the fundamental gain as dots, flat at one up to about one and a half volts, then falling ever faster; open squares joined by a dashed line, the prediction, sit on every dot but the last. Bottom: the ratio of the third harmonic to the fundamental as dots, near zero up to the same amplitude, then rising steeply."
+result.show("fig-amplitude-response")
+```
+
+The campaign made `{python} result["led-measurements"]` measurements. The
+characteristic fitted at `{python} result["led-fitted-on"]` V predicts the gain
+at the `{python} result["held-out-points"]` other amplitudes, and the
+prediction and the measurement `{python} result["held-out-verdict"]` at every
+one, the largest difference being `{python} result["held-out-worst"]` combined
+standard errors. The characteristic fitted over every valid amplitude, against
+the diodes the simulated bench holds:
+
+```{python}
+#| label: led-characteristic
+#| echo: false
+result.table("led-characteristic")
+```
+
+[The fitted ideality factor and the voltage at one milliampere are those of
+the simulated diodes within the protocol's tolerances, and the held-out
+prediction agrees at every amplitude.]{.claim type="numerically-verified"
+scope="the simulated LED pair with its seeded noise and the plan
+campaign-led-pair.toml" evidence="led-characteristic fig-amplitude-response"}
+The simulator's check `{python} result["led-check"]`. The held-out check is
+the one that carries over to a real pair; it tests the model of the pair, not
+the declared resistor: a wrong resistor value rescales the fitted saturation
+current exactly, so this check cannot see it.
+
+### The agent route beside the classical ones
+
+The agent route replays a committed trace call by call against a fresh
+simulated bench. That trace was written by a scripted placeholder policy, not
+a language model; recording real campaigns with models is later work with the
+owner of the bench. So what follows tests the route, its tools, and the
+comparison, not a model. The trace's own final message says so:
+
+> `{python} result["agent-answer"]`
+
+Every agent campaign on the simulator runs the adaptive policy and the
+scripted sweep beside it, on fresh benches with the same plan and seed
+(`{python} result["seed"]`). The routes are compared by the measurements each
+needed to reach the same interval width of $f_0$, the widest final width
+among them, here `{python} result["common-width"]`, so that every route
+reached it.
+
+Before you look: the scripted sweep makes its
+`{python} result["sweep-points"]` sweep points and stops; the adaptive policy
+makes the same ones and then refines. How many frequency-response
+measurements does each route need to reach the width at which the scripted
+sweep ends?
+
+```{python}
+#| label: routes
+#| echo: false
+result.table("routes")
+```
+
+```{python}
+#| label: fig-routes
+#| echo: false
+#| fig-cap: "The width of the interval of f0 after each frequency-response measurement, for the three routes. The adaptive policy and the scripted sweep share the sweep; only the adaptive policy goes on to the plan's target. The placeholder agent chose other points and reached the target sooner."
+#| fig-status: simulated
+#| fig-alt: "A line chart of the relative width of the interval of f0, on a logarithmic axis, against the number of frequency-response measurements. Three routes, told apart by marker and line style: the adaptive and the scripted routes lie on top of each other over the first measurements and level off at a dash-dotted line marked common width, where the scripted route ends; the adaptive route then falls to a dotted line marked plan's target. The agent route starts lower, stays level above the common width for a few measurements, then drops below it and reaches the target first."
+result.show("fig-routes")
+```
+
+[At the common width every route needed the same number of frequency-response
+measurements, because that width is the one the shared sweep reaches; only the
+routes that refine go further, to the plan's target.]{.claim
+type="numerically-verified" scope="this plan and seed on the simulated bench;
+the agent route is a scripted placeholder trace, not a model"
+evidence="routes fig-routes"} A comparison at the widest common width is fair
+in the sense that every route reached it; it says little when that width is
+set by the weakest route. The second exercise asks the other question, how
+many measurements each route needs for the plan's own target.
+
+### A circuit that is not what was declared
+
+Real parts are not what their labels say. Suppose the plan still declares the
+circuit of the RLC lesson, but the bench holds a coil and a capacitor off by
+the ratios the physical pilot found, with a loss in series:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="mismatch")
+```
+
+so that the bench's own closed form, which the program cannot know, has
+$f_0 =$ `{python} result["actual-f0"]` Hz and $Q =$ `{python} result["actual-q"]`.
+**Predict** before you read on: of the two checks, against the closed form of
+the declared parts and between the two protocols, which fails?
+
+```{python}
+#| label: mismatch-checks
+#| echo: false
+result.table("mismatch-checks")
+```
+
+```{python}
+#| label: mismatch-consistency
+#| echo: false
+result.table("mismatch-consistency")
+```
+
+[On a bench whose parts differ from the declared ones, both protocols fail the
+check against the declared closed form and still agree with each other within
+two combined standard errors.]{.claim type="numerically-verified" scope="a
+simulated bench with constant parts off by the stated ratios; a real coil
+whose loss changes with frequency need not give agreement"
+evidence="mismatch-checks mismatch-consistency"} The measurements are right
+and the closed form is wrong, so the check that serves a simulator condemns a
+sound measurement here. The two protocols measure the circuit that is there,
+by different physics, and their agreement is evidence about that circuit. That
+is why the agreement, not the closed form, is the independent check of a
+live or recorded campaign.
+
+### One real circuit: the pilot's record
+
+The physical pilot of the lab measured one series RLC circuit on a breadboard
+with a programmable instrument, by the frequency-response protocol. Its record
+is a declared dataset:
+
+```{python}
+#| echo: false
+data_card("ad3-rlc-pilot")
+```
+
+The recorded adapter replays the sweep through the frequency-response protocol
+of the lab's first version, in order, with no new measurement (the run record
+of the replay says `{python} result["pilot-mode"]`), from
+`{python} result["pilot-points"]` recorded points:
+
+```{python}
+#| label: pilot
+#| echo: false
+result.table("pilot")
+```
+
+```{python}
+#| label: fig-pilot-discrepancy
+#| echo: false
+#| fig-cap: "The pilot's measured sweep against the closed form of the parts' labels. The measured resonance is lower in frequency, and its peak lower and broader, than the labels predict; the residual is largest at the resonance."
+#| fig-alt: "Three stacked panels against frequency on a logarithmic axis. Top, log-log: the measured gain as dots, near one at low frequency, rising to a low, broad peak, then falling; a dashed curve of the closed form rises to a much higher, sharper peak at a higher frequency and meets the dots again far above the resonance. Middle: the measured phase as dots falling through a horizontal line at minus ninety degrees at a lower frequency than the dashed curve. Bottom: the residual of the gain, model minus measured, near zero far from the resonance and a single large peak at it."
+#| fig-status: processed
+#| fig-dataset: ad3-rlc-pilot
+result.show("fig-pilot-discrepancy")
+```
+
+[The measured sweep of the pilot's circuit is not described by the closed form
+of its parts' labels: the protocol's $f_0$ is lower by
+`{python} result["pilot-f0-error"]` per cent and its $Q$ lower by
+`{python} result["pilot-q-error"]` per cent, and the evaluator's check
+`{python} result["pilot-check"]`.]{.claim type="experimentally-supported"
+scope="one circuit, one sweep, the device's factory calibration; the parts'
+labels as the model" evidence="pilot fig-pilot-discrepancy ad3-rlc-pilot"} The
+dossier of the dataset measures the coil and the capacitor apart from a second
+sweep and finds them off their labels, and a loss in the coil that grows with
+frequency, so that no model with constant parts fits the whole band. The page
+shows the discrepancy as the record holds it and offers no resolution of it.
+What explains the coil's loss is an open question for a later, registered
+measurement, not for this lab. The worked example before this one is the
+reason the lab can still be trusted on such a circuit: its independent check
+does not rest on the labels. Whether the two protocols agree on this real
+coil has not been measured yet: the ring-down has not run on the device.
+
+### What the lab shows
+
+The brief, requirement by requirement:
+
+1. *Safe on a real bench*: the refusals above, with no call reaching the
+   bench, and the confirmation of the circuit; the live envelope is the
+   pilot's, and its stop and watchdog were tested there.
+2. *Three distinct protocols*: a steady state, a free decay, and a
+   nonlinear response, each with its check, on the simulator.
+3. *Bad data never fitted*: the refused measurement of the RLC campaign, its
+   retry, and its absence from the fit.
+4. *Results with intervals*: every estimate of the campaigns has its
+   standard error; the pilot's replay, by the first version's protocol,
+   gives none.
+5. *Every route on the same footing*: the comparison table, with the caveat
+   that the agent trace is a placeholder.
+6. *Evidence a third party can check*: the export and the evaluator, which
+   computed every estimate of the campaigns' tables from the raw samples.
+7. *Runs without hardware or an account*: this page is that run. What is not
+   shown is the lab on a real bench beyond the pilot's frequency response:
+   the ring-down and the LED pair wait for their bench sessions, and an
+   agent campaign by a model waits for its recording.
+
+## Explore and extend {#extend}
+
+**Measure your own circuit.** With the instrument of the pilot, the live mode
+runs the same campaigns on your bench, under the live envelope and its current
+bound, after you confirm the circuit; `products/physics-lab/README.md` gives
+the wiring and the commands. A live result stays on your machine. On this
+site, live support means what the pilot showed: the frequency response on the
+series RLC circuit. The ring-down and the LED pair are simulator-only until
+they are measured at the bench.
+
+**Record an agent.** The command `record-campaign` records a campaign of a
+model of your choice through the same tools, counts the tokens of every call,
+and stops at a spend ceiling you set; its trace then replays here as the
+placeholder does.
+
+**Build a feature.** The starter in `products/physics-lab/starter/` is a
+project of your own with the lab's verified parts and one place for your
+work, the ring-down fit (the first exercise). Optional routes with a coding
+agent, piloted once, are in `products/physics-lab/ROUTES.md`.
+
+**Extend the lab.** A protocol of your own (the impedance of a loudspeaker
+behind a resistor, a resonance below the envelope's lowest frequency, would
+need a decision on that limit first), another policy that must beat the
+adaptive one at the same budget, or a check that would catch a wrong declared
+resistor, which the held-out check cannot.
+
+## Limits {#limits}
+
+- **Simulated, apart from one record.** Every campaign on the page is a
+  model of a bench with Gaussian noise. The one measured record is a single
+  sweep of one circuit by one protocol, on the device's factory calibration.
+- **The agent is a placeholder.** The committed agent traces were written by
+  a scripted policy. The comparison shows that the route and its accounting
+  work, not what any language model would do.
+- **Constant parts in the simulator.** The mismatched circuit holds its parts
+  constant over frequency; a real coil does not, and on it the two RLC
+  protocols may disagree for that reason alone.
+- **The confirmation is a person's word.** The current bound of the live mode
+  is computed from the declared circuit, not measured; a wiring mistake can
+  draw more current than it says.
+- **An educational and experimental tool, not a certified laboratory
+  instrument.** Its software safeguards are not an emergency stop: unplugging
+  the device is the one that does not depend on the computer.
+
+::: {.exercise .self-check}
+The agent route needed as many frequency-response measurements as the adaptive
+policy to reach the common width, and fewer to reach the plan's target. What
+does this show about language models as experimenters?
+
+::: {.solution}
+Nothing. The committed trace was written by a scripted placeholder policy, not
+a model, and the page says so. What the comparison does show is that the
+agent route works end to end: its tool calls went through the campaign, the
+gate, and the envelope, the build replayed every call against a fresh bench,
+and the evaluator, not the trace, computed the results. A recorded campaign of
+a real model would be judged by the same table, on the same plan and seed, and
+even then one campaign is one draw.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Your construction: the ring-down fit.** Copy the starter, write the body of
+`fit_ringdown` in `my_lab/ringdown.py` by hand, and make the twelve provided
+tests pass. The manual route needs no coding agent and no model account:
+
+::: {.not-verified}
+```bash
+cp -R products/physics-lab/starter my-lab
+mkdir my-lab/fixtures
+cp products/physics-lab/fixtures/starter-agent.json my-lab/fixtures/
+cd my-lab
+uv sync
+uv run pytest tests/test_ringdown.py
+```
+:::
+
+`products/physics-lab/starter/SPECIFICATION.md` says what the fit must return
+and refuse; `products/physics-lab/ROUTES.md` has the route step by step.
+
+::: {.solution}
+The lab's own fit, the reference the starter's tests were checked against,
+starts from the spectrum's peak and a coarse search of the decay rate, then
+fits all five parameters:
+
+```{python}
+#| echo: false
+excerpt(ringdown.fit_ringdown, region="fit")
+```
+
+The rest of the function propagates the covariance of $\alpha$ and
+$\omega_d$ into $f_0$ and $Q$, and refuses a record that does not decay, that
+holds less than one period, or whose amplitude or $Q$ the noise explains. The
+provided tests check the values against records of known $f_0$ and $Q$, the
+standard errors against the scatter over many records, and every refusal of
+the specification.
+:::
+:::
+
+::: {.exercise}
+The routes were compared at the widest common width. Compare them instead at
+the plan's own target width of $f_0$: how many frequency-response measurements
+does each route need to reach it?
+
+::: {.solution}
+```{python}
+#| label: needed-for-target
+#| echo: false
+result.table("needed-for-target")
+```
+
+The scripted sweep never reaches the target: it spends its points evenly and
+stops. The routes that refine reach it within their campaigns. A comparison
+at a target only some routes reach rewards refinement; one at the widest
+common width hides it. A fair report states the target and gives both.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/experiments/autonomous_physics_lab.py",
+        "src/pbc/products/physics_lab/lab.py",
+        "src/pbc/products/physics_lab/campaign.py",
+        "src/pbc/products/physics_lab/resonance.py",
+        "src/pbc/products/physics_lab/transient.py",
+        "src/pbc/products/physics_lab/ringdown.py",
+        "src/pbc/products/physics_lab/nonlinear.py",
+        "src/pbc/products/physics_lab/estimates.py",
+        "src/pbc/products/physics_lab/agent_campaign.py",
+        "src/pbc/instruments/contract.py",
+        "src/pbc/electromagnetism/pilot_record.py",
+        "src/pbc/data/reference/ad3_rlc_pilot.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_autonomous_physics_lab_experiment.py",
+        "tests/unit/test_physics_lab_protocols.py",
+        "tests/unit/test_physics_lab_campaigns.py",
+    ],
+    data="""
+        The pilot's record is committed in `data/samples/ad3-rlc-pilot`; no
+        download, no model, and no account are needed to read it. The product
+        itself runs from the same clone: `uv run --locked --no-dev python -m
+        pbc.products.physics_lab campaign --plan
+        products/physics-lab/examples/campaign-series-rlc.toml
+        --circuit-confirmed --out physics-lab-campaign`, and the other steps
+        of its reference workflow are in `products/physics-lab/WORKFLOW.md`;
+        the starter is `products/physics-lab/starter`, with its own
+        `README.md`.
+    """,
+)
+```

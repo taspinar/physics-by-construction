@@ -119,7 +119,8 @@ class Agreement:
 def agreement(
     quantity: str, first: str, a: Estimate, second: str, b: Estimate
 ) -> Agreement:
-    """Whether ``a`` (from ``first``) and ``b`` (from ``second``) agree:
+    """Whether the estimate ``a`` of the protocol ``first`` and the
+    estimate ``b`` of the protocol ``second`` agree:
     |a - b| <= COVERAGE sqrt(se_a^2 + se_b^2)."""
     # region: agreement
     difference = a.value - b.value

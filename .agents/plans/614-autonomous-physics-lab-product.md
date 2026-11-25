@@ -330,3 +330,195 @@ page SA9 (part 2).
 - **The draft pull request** of the Issue's instructions is not opened in
   this session: the session's instruction is not to commit or push, and
   `scripts/finish-feature.sh` and `scripts/publish-feature.sh` do it.
+
+# Part 2: the page SA9 and the complete `products/physics-lab/` (2026-11-25)
+
+Source: the Issue's "Owner's start of part 2", "Scope of part 2", and
+"Session instructions (part 2)"; ADR 022 decisions 3 and 5; F139's
+narrower go (`docs/products.md`, the decision record of 2026-11-25).
+Part 1 (802c4a9, #616), the clients (09d95b7, #617), and F139 (d15e1d8,
+#620) are merged. Criteria 1 and 5, and 6 for this change.
+
+## Risk (part 2)
+
+**Raised to Level 3 by assessment during the work** (see "Discoveries
+(part 2)"): the boundary test of the products, which no page could pass
+before, is extended for the capstone. Before that, Level 2 by its paths: a new lesson page, a new experiment module
+`src/pbc/electromagnetism/experiments/autonomous_physics_lab.py` and its
+unit test, comment lines (`# region:`) in one product module for an
+excerpt, the learner documents of `products/physics-lab/`, and
+`docs/products.md` / `docs/project-map.md` extended at the end. No
+dependency file, envelope, driver output, watchdog, stop, protected path,
+ADR, CI workflow, verification check, tolerance, or skip changes; the
+starter and `ROUTES.md` are not changed. A new lesson changes what other
+pages show of the path (the header neighbours, the atlas, Home), so the
+tier is `./scripts/verify.sh --base`; if it selects every lesson it is
+stopped in the session and criterion 6 is recorded `pr_ci` pending.
+
+## Skills (part 2)
+
+Skills: pbc-physics-teaching@7f34987, pbc-scientific-visualization@a70b501
+
+`impeccable` and `frontend-design` are not selected: the page uses the
+site's lesson layout and the local interface gets no new layout.
+
+| Deliverable | Class | Skills | Validation | Accessible fallback |
+|---|---|---|---|---|
+| The page SA9 | Lesson (capstone archetype) | pbc-physics-teaching | the lesson checks, the review of the rendered page | the site's lesson layout; every figure has alt text and a table beside it |
+| `fig-frequency-response`, `fig-ringdown`, `fig-amplitude-response`, `fig-routes` | Scientific figures, `simulated` | pbc-scientific-visualization | drawn from the campaign's own records and the evaluator's fits; models dashed and apart; residual panel for the ring-down | alt text; the measurement, consistency, and comparison tables |
+| `fig-pilot-discrepancy` | Scientific figure, `processed`, `fig-dataset: ad3-rlc-pilot` | pbc-scientific-visualization | the dataset's own reference figure (`pbc.data.reference.ad3_rlc_pilot.make_figure`, its declared provenance), drawn as the dossier draws it | alt text; the table of the recorded replay against the nominal closed form |
+
+## Teaching decisions (pbc-physics-teaching)
+
+- **Learner.** Has worked through SA1 to SA8 of the path (specification,
+  verified code, the instrument contract, measurement quality, a bounded
+  agent, campaigns, falsification, checkable reports) and EM5 (the series
+  RLC circuit). Prerequisites in the front matter: the campaign lesson
+  (SA6), the measurement-quality lesson (SA4), and the bounded agent (SA5).
+- **Central question.** What has to be in place before a program, a person
+  or an agent, may run experiments on a real circuit, and how does anyone
+  know that the numbers it reports are right when there is no closed form
+  to check them against?
+- **Counterintuitive point.** The check that makes a simulator trustworthy,
+  agreement with the closed form, is the wrong check for a real circuit: on
+  F140's circuit it fails though the measurement is sound, because the
+  parts are not what their labels say. The independent check of a real
+  circuit is the agreement of two physically different protocols on the
+  same circuit. Second point: an agent route that matches the adaptive
+  policy shows nothing about a language model here, since the committed
+  traces are scripted placeholders.
+- **Archetype.** Engineering design or capstone (main), with the agent and
+  evaluation archetype for the route comparison. The page opens with the
+  brief and its credibility boundary, states requirements apart from the
+  choices, and ends by walking the requirements one by one ("What the lab
+  shows").
+- **Moments.** (1) A prediction before the worked example "A circuit that
+  is not what was declared": which of the two checks fails when the
+  declared inductance and capacitance are off by the pilot's amounts?
+  (2) The self-check after the route comparison: what the comparison shows
+  about a model, given the placeholder trace.
+- **Kinds of result.** Simulation outputs (the campaigns), derived
+  properties (the closed form of the simulated circuit), a processed
+  measurement (the pilot's sweep), and an inference about reality only
+  where the pilot warrants it (the nominal model does not describe the
+  circuit); claim labels and figure statuses mark them.
+
+## The page's sequence
+
+`site/lessons/agents-llm/25-autonomous-physics-lab/index.qmd`, id
+`autonomous-physics-lab`, strand `agents-llm`, order 25, course
+`electromagnetism`, slot SA9, methods `[simulation, measured-data]`
+(no `llm-agents`: the page replays no model transcript; the agent route
+is a scripted placeholder trace replayed through the product), format 2,
+experiment `pbc.electromagnetism.experiments.autonomous_physics_lab`.
+
+1. Opening: the question; the kind of evidence (every campaign is the
+   build's, on the simulated bench; one figure and one table are the
+   pilot's measured record; the agent traces are scripted placeholders);
+   the sentence of the block.
+2. Assumptions, the brief first (the requirements in words, then the
+   choices), then the assumptions of the protocols.
+3. Understand (`#explanation`): what lets an agent run real experiments
+   safely: the instrument contract with its envelope and stop
+   (`Instrument.excite`), the confirmed circuit (no rewiring), the quality
+   gate, the three protocols and their independent checks, the evidence
+   package, the evaluator; the lesson outcomes each product feature
+   exercises (criterion 5).
+4. Construct (`#code`): excerpts by region: one measured point
+   (`resonance.analyse_point`, `point`), the step of a campaign
+   (`Campaign.execute`, `execute`) and the sweep with its refinement
+   (`run_segment`, `segment`; `next_step` shown whole), the ring-down fit
+   (`ringdown.fit_ringdown`, `fit`), the nonlinear response
+   (`nonlinear.analyse_amplitude`, `harmonics`; `predict_gain`, `predict`),
+   the bounded tool (`agent_campaign.campaign_tools`, a new region `tool`
+   around its one call into the campaign), and the evaluator
+   (`lab.consistency`, `consistency`; `estimates.agreement`, `agreement`).
+   The reader's own construction: the starter's ring-down fit by the
+   manual route (an exercise).
+5. Experiment (`#worked-examples`): the reference workflow on the
+   simulator: (a) the series RLC campaign of
+   `campaign-series-rlc.toml`, adaptive, with a link that loses a burst
+   of samples in one acquisition (a refused measurement, its retry), the
+   refinement, the repeated ring-downs; the measurement table, the
+   frequency-response and ring-down figures, the simulator's checks and
+   the consistency of the two protocols; (b) the LED pair of
+   `campaign-led-pair.toml`: the amplitude-response figure, the
+   characteristic, the held-out check; (c) the agent route replayed from
+   its placeholder trace beside the adaptive policy and the scripted
+   sweep, the comparison table and `fig-routes`; (d) a circuit that is
+   not what was declared (the pilot's ratios of L and C and a coil loss):
+   the closed-form check fails, the two protocols agree; (e) the pilot's
+   record `ad3-rlc-pilot` (data card, the recorded replay through F138's
+   protocol against the nominal closed form, the reference figure) shown
+   as it is, without a resolution.
+6. Explore and extend (`#extend`): the bench sessions not yet made (the
+   transient protocol and the LED pair are simulator-only), the optional
+   routes in one sentence pointing to `products/physics-lab/ROUTES.md`,
+   ideas for extending the lab; "What the lab shows" walks the brief.
+7. Limits, the self-check, the exercises, the last section (the product's
+   commands in the `data` note of `reproduce_this`, inside "Setup and
+   commands").
+
+**Executed cells and time.** One `experiment.run()` in the header cell:
+the RLC campaign (~3 s), the agent route with its two baselines (~4 s),
+the LED campaign (~2 s), the mismatched circuit (~3 s), the pilot replay
+and its figure (~2 s); the cold render is measured and must stay well
+under 60 s.
+
+**Exercises.** (1) The starter's ring-down fit by the manual route (the
+commands not verified; the solution names the product's reference fit and
+what the twelve tests check). (2) How many measurements each route needs
+for the plan's own target width of f0 (`lab.needed` on the routes'
+histories): the scripted sweep never reaches it.
+
+## `products/physics-lab/` complete
+
+`README.md` gains the brief of the whole product, its scientific
+acceptance criteria (per protocol, with the checks), the example inputs
+(every file of `examples/`), and a link to the two new documents:
+`WORKFLOW.md`, the reference workflow on the simulator (the commands of
+the fresh-clone run, in order, with what each writes and what to read in
+it), and `RUBRIC.md`, the assessment rubric of a learner's lab. The
+F138 parts of the README stay; `ROUTES.md` and the starter are unchanged.
+
+## The fresh-clone run (criterion 1)
+
+In a scratch directory, without a key in the environment and without a
+device:
+
+    git clone <repository> pbc && cd pbc && git checkout <this branch's commit or the working tree's copy>
+    uv sync --locked --no-dev
+    uv run --locked --no-dev python -m pbc.products.physics_lab campaign --plan products/physics-lab/examples/campaign-series-rlc.toml --circuit-confirmed --out run-rlc
+    ... (the commands of WORKFLOW.md)
+
+The session clones the local repository with its uncommitted part 2 tree
+copied in (the branch is not committed by the session), runs the
+commands, and records the commands and their output in the handoff note
+for the Issue; the supervisor repeats it from the published branch and
+posts it on the Issue.
+
+## Discoveries (part 2)
+
+- **The boundary test of the products** (`tests/unit/test_products_boundary.py`)
+  held that no page imports `pbc.products` and that three experiments run
+  the instrument contract; its docstring foresaw that F145's capstone page
+  "changes this test with it". It now allows exactly the capstone page, its
+  experiment, and `src/pbc/electromagnetism/pilot_record.py` to name the
+  product modules of `CAPSTONE_PRODUCT_MODULES`, never `LIVE`, and checks
+  that those modules reach no command line, local server, provider client,
+  or live adapter through their imports. Assessed as Level 3 (a possible
+  weakened test strength); approval request `.agents/approvals/614.md`.
+- **Data use is followed by name across a whole module**, so the pilot's
+  replay and figure live in `src/pbc/electromagnetism/pilot_record.py`;
+  otherwise every figure of the experiment counts as made from the dataset.
+- **The dataset's reference figure is not reused**: a 2x2 grid ten inches
+  wide is unreadable on a phone, and it draws a second model (the parts
+  measured apart). The page draws the measurement against the closed form of
+  the labels alone, in stacked panels.
+- **A docstring's ``` ``name`` (text) ``` is read as a unit by the site's
+  excerpt check** even where the build does not take it for one:
+  `estimates.agreement` said ``` ``a`` (from ``first``) ``` and failed
+  the check; reworded. Fourteen other docstrings of the product have such a
+  parenthesis, none on a page; recorded, not changed.
+- **`reproduce_this` has no field for a product's commands**; they are in
+  its `data` note, inside "Setup and commands" of the last section.
