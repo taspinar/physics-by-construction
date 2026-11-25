@@ -125,6 +125,7 @@ def campaign_tools(
     plan = campaign.plan
     envelope = campaign.instrument.envelope
 
+    # region: tool
     def run(protocol: str, setting: float | None) -> dict[str, Any]:
         try:
             record = campaign.execute(Step(protocol, setting, AGENT))
@@ -133,6 +134,8 @@ def campaign_tools(
                 refusals.append(reason)
             raise RuntimeError(str(reason)) from None
         return _result(record)
+
+    # endregion: tool
 
     tools = []
     if FREQUENCY_RESPONSE in plan.protocols:

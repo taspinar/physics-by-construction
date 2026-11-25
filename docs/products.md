@@ -1066,3 +1066,39 @@ typed `uncertainty` (0.60 and 0.86 of the paper's, rows added post-hoc
 beside the registered bounds); the fits weight with the diagonal
 uncertainties, and the review's finding that asks for the paper's
 covariance between frequencies stays open.
+
+## The product, part 2: the capstone page SA9 (F145, Issue #614, 2026-11-25)
+
+Part 2 completes the capstone after F139's narrower go. The page
+`site/lessons/agents-llm/25-autonomous-physics-lab/index.qmd` (slot SA9,
+kind `product capstone`, methods simulation and measured data) teaches the
+product in four parts: what lets an agent run real experiments safely and
+the lesson outcomes each product feature exercises; the essential code as
+excerpts of the real modules (the envelope before the device, one measured
+point, a campaign step and the refinement, the ring-down fit, the nonlinear
+response, the bounded tool, the evaluator's agreement); the reference
+workflow run by its experiment
+`src/pbc/electromagnetism/experiments/autonomous_physics_lab.py` on the
+simulator (the series RLC campaign with one measurement refused by the
+quality gate after a lossy link and its retry, the LED pair with its
+held-out check, the agent route beside the adaptive policy and the
+scripted sweep, a circuit whose parts are not the declared ones); and what
+to build next. The pilot's record `ad3-rlc-pilot` is shown as it is, by
+the recorded replay and a figure against the closed form of the labels
+(`src/pbc/electromagnetism/pilot_record.py`, a module apart so that the
+other figures are not made from a dataset), without a resolution. The page
+promises no workload for a coding-agent route and points to
+`products/physics-lab/ROUTES.md` once.
+
+`products/physics-lab/` is complete: `README.md` holds the brief and the
+scientific acceptance criteria of the whole product and its example
+inputs, `WORKFLOW.md` the reference workflow step by step (the commands of
+the fresh-clone run), and `RUBRIC.md` the assessment rubric; `ROUTES.md` and
+the starter are unchanged.
+
+**What the page does not claim.** The committed agent-campaign traces are
+scripted placeholders, and the page says so wherever it shows them. Live
+support is what F140's pilot showed, the frequency response on the series
+RLC circuit; the ring-down and the LED pair are simulator-only until the
+owner's bench sessions, and the model campaigns are recorded later, in
+their own pull request, which then changes the page's wording.
