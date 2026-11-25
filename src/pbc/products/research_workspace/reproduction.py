@@ -8,15 +8,20 @@ values come from the project's source evidence, never from a constant here.
 """
 
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 
 import numpy as np
 
 from pbc.products.research_workspace import discrepancy as d
 from pbc.products.research_workspace import firas
+from pbc.products.research_workspace.registration import Registration
 from pbc.products.research_workspace.sources import Source
 
-# The rule of the residual figure (declared in the registration): every
+# The rule of the residual figure (stated in the registration): every
 # regenerated residual within this many of its 1-sigma of the published one.
+# It is post-hoc: set in part 1 after a scratch fit had been seen, not
+# preregistered (the owner's review of 2026-11-25 on Issue #619); the
+# registration's criterion carries the reason and the row its label.
 FIGURE_SIGMA = 1.0
 # The rules of the bounds (the plan): reproduced at most 1.5 times the
 # published bound; not reproduced above 3 times it.
@@ -230,3 +235,15 @@ def rows(
     )
     d.validate(out)
     return out
+
+
+def mark_post_hoc(
+    rows_: Sequence[d.Discrepancy], plan: Registration
+) -> list[d.Discrepancy]:
+    """The rows with the post-hoc reason of their registered criterion, so
+    that a rule set after a result had been seen never reads as a
+    confirmatory result. A criterion is matched by its quantity; the
+    registration alone decides, so a row whose criterion has no reason
+    carries none."""
+    reasons = {c.quantity: c.post_hoc for c in plan.criteria}
+    return [replace(row, post_hoc=reasons.get(row.quantity, "")) for row in rows_]

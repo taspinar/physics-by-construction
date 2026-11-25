@@ -163,7 +163,9 @@ def run(example: Path, directory: Path) -> Path:
     research.ledger.add_evaluation(_evaluate_control(research, spectrum, trial))
 
     by_id = sources.by_id(evidence)
-    rows = reproduction.rows(spectrum, fits, trial, by_id)
+    rows = reproduction.mark_post_hoc(
+        reproduction.rows(spectrum, fits, trial, by_id), plan
+    )
     _write_json(directory / "rows.json", [d.as_dict(r) for r in rows])
 
     log = worklog.Log()
@@ -414,18 +416,27 @@ def render_markdown(data: dict):
                 row.quantity,
                 row.published,
                 row.regenerated,
-                row.verdict,
+                d.verdict_text(row),
                 row.type or "",
                 check,
                 status.get(f"row-{number}", ""),
             )
         )
-    notes = [(n, r) for n, r in enumerate(data["rows"], start=1) if r.note or r.missing]
+    notes = [
+        (n, r)
+        for n, r in enumerate(data["rows"], start=1)
+        if r.note or r.missing or r.post_hoc
+    ]
     if notes:
         lines += [""]
         for number, row in notes:
-            extra = f" Missing: {row.missing}." if row.missing else ""
-            lines.append(f"- Row {number}: {row.note}.{extra}".replace("..", "."))
+            parts = [row.note] if row.note else []
+            if row.missing:
+                parts.append(f"Missing: {row.missing}")
+            if row.post_hoc:
+                parts.append(f"Post-hoc rule: {row.post_hoc}")
+            text = ". ".join(p.rstrip(".") for p in parts)
+            lines.append(f"- Row {number}: {text}.")
     lines += ["", "## Findings of the review", ""]
     lines += ["| Finding | Kind | By | State | Text |", "|---|---|---|---|---|"]
     for key, entry in data["log"].findings().items():

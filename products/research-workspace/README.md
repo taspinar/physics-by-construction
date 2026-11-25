@@ -90,7 +90,10 @@ The rows the run writes, from the committed sample:
   published 50 ppm, and the residual figure is regenerated: **reproduced,
   by construction** — the residuals of the file are the paper's own fit
   (the caption of its Fig. 5), so these rows confirm that the file and the
-  fit agree, not an independent fit.
+  fit agree, not an independent fit. The figure's rule (every residual
+  within 1 sigma of the published one) was set after a scratch fit had been
+  seen, so its row is marked **post-hoc rule, not a confirmatory result**
+  in the report and the view (`post_hoc` in `registration.toml`).
 - The absolute temperature 2.728 K: **not reproduced, typed `method`**. The
   fitted temperature returns the file's reference of 2.725 K; branch b4
   shows that it follows the reference, and the missing piece is the

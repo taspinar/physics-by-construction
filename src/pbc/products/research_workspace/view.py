@@ -8,6 +8,7 @@ colour alone; every figure has alt text and its table beside it.
 """
 
 import base64
+import hashlib
 import html
 from pathlib import Path
 
@@ -15,6 +16,7 @@ import numpy as np
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.reference import cobe_firas, reference_png
+from pbc.products.research_workspace import discrepancy as d
 from pbc.products.research_workspace import firas, graph
 from pbc.products.research_workspace import log as worklog
 from pbc.products.research_workspace import report as rep
@@ -30,7 +32,8 @@ _STYLE = """
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--background); color: var(--text);
-  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  font: 1rem/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow-wrap: break-word; }
 header { background: var(--night); color: var(--night-text);
   padding: 1.5rem 1rem 1.25rem; }
 header .inner, main { max-width: 72rem; margin: 0 auto; }
@@ -46,7 +49,7 @@ p, li { max-width: 72ch; }
   padding: .75rem 1rem; border: 1px solid var(--warning); }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums;
   background: var(--plate); }
-caption { text-align: left; color: var(--muted); padding: 0 0 .4rem; }
+.caption { color: var(--muted); margin: 0; padding: 0 0 .4rem; }
 th, td { text-align: left; vertical-align: top; padding: .4rem .6rem;
   border-bottom: 1px solid var(--rule); }
 th { background: var(--surface); font-weight: 600; }
@@ -54,6 +57,7 @@ th { background: var(--surface); font-weight: 600; }
 .status { font-weight: 600; white-space: nowrap; }
 .status-failed, .status-not-reproduced, .status-open { text-decoration: underline;
   text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.post-hoc { display: block; color: var(--warning); font-weight: 600; }
 figure { margin: 0; }
 figure img { max-width: 100%; height: auto; background: var(--plate);
   border: 1px solid var(--rule); }
@@ -62,7 +66,17 @@ a { color: var(--link); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 footer { max-width: 72rem; margin: 0 auto; padding: 1rem; color: var(--muted);
   border-top: 1px solid var(--rule); }
-@media (max-width: 40rem) { th, td { padding: .35rem .4rem; font-size: .92rem; } }
+@media (max-width: 40rem) {
+  .scroll table, .scroll tbody, .scroll tr, .scroll td { display: block; }
+  .scroll thead { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap; }
+  .scroll tr { border-bottom: 2px solid var(--rule); padding: .4rem 0; }
+  .scroll td { border: 0; padding: .2rem .6rem; }
+  .scroll td:empty { display: none; }
+  .scroll .status { white-space: normal; }
+  .scroll td::before { content: attr(data-label); display: block;
+    color: var(--muted); font-size: .85rem; font-weight: 600; }
+}
 """
 
 
@@ -76,13 +90,33 @@ def _status(word: str) -> str:
 
 
 def _table(caption: str, head: list[str], rows: list[list[str]], *, raw=()) -> str:
-    """A table; the cells of the column numbers in ``raw`` are HTML already."""
-    out = [f'<div class="scroll"><table><caption>{_e(caption)}</caption><thead><tr>']
-    out += [f'<th scope="col">{_e(h)}</th>' for h in head]
-    out.append("</tr></thead><tbody>")
+    """A table; the cells of the column numbers in ``raw`` are HTML already.
+
+    The caption is a paragraph above the scrolling box, so that it wraps at
+    the screen's width instead of the table's; it names the table and the
+    box, which takes the keyboard focus so that it can be scrolled. Below
+    40rem the style shows each row as a card whose cells carry their column
+    name (``data-label``); the explicit roles keep the table's semantics
+    when the style changes its display."""
+    key = "t-" + hashlib.sha256(caption.encode()).hexdigest()[:10]
+    out = [
+        f'<p class="caption" id="{key}">{_e(caption)}</p>'
+        f'<div class="scroll" role="region" tabindex="0" aria-labelledby="{key}">'
+        f'<table role="table" aria-labelledby="{key}"><thead role="rowgroup">'
+        '<tr role="row">'
+    ]
+    out += [f'<th scope="col" role="columnheader">{_e(h)}</th>' for h in head]
+    out.append('</tr></thead><tbody role="rowgroup">')
     for row in rows:
         cells = [c if n in raw else _e(c) for n, c in enumerate(row)]
-        out.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
+        out.append(
+            '<tr role="row">'
+            + "".join(
+                f'<td role="cell" data-label="{_e(h)}">{c}</td>'
+                for h, c in zip(head, cells, strict=True)
+            )
+            + "</tr>"
+        )
     out.append("</tbody></table></div>")
     return "".join(out)
 
@@ -318,10 +352,23 @@ def render(data: dict, *, figure: bool = True) -> str:
                 row.quantity,
                 row.published,
                 row.regenerated,
-                _status(row.verdict),
+                _status(row.verdict)
+                + (
+                    f' <span class="post-hoc">{_e(d.POST_HOC_LABEL)}</span>'
+                    if row.post_hoc
+                    else ""
+                ),
                 row.type or "",
                 check,
-                "; ".join(x for x in (row.note, row.missing) if x),
+                "; ".join(
+                    x
+                    for x in (
+                        row.note,
+                        row.missing,
+                        f"post-hoc rule: {row.post_hoc}" if row.post_hoc else "",
+                    )
+                    if x
+                ),
                 _status(status.get(f"row-{number}", "")),
             ]
         )

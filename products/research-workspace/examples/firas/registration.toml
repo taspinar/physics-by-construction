@@ -65,6 +65,7 @@ quantity = "the residual figure"
 source = "figure"
 rule = "the regenerated residuals from the documented inputs within 1 sigma of the published residuals at every frequency (compared by the numbers, not by the look)"
 otherwise = "a typed discrepancy"
+post_hoc = "the threshold of 1 sigma was set in F155 part 1 after a scratch fit of the file had been seen, because the plan said only that the figure is compared by its numbers; it was not preregistered (the owner's review of 2026-11-25 on Issue #619)"
 
 [[criterion]]
 quantity = "|y| (95 %)"

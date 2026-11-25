@@ -36,12 +36,16 @@ class Explanation:
 @dataclass(frozen=True)
 class Criterion:
     """One row of what counts as a result: the quantity, the source of its
-    published value, the rule, and what follows otherwise."""
+    published value, the rule, and what follows otherwise. ``post_hoc``
+    says why a rule was set after a result had been seen (empty for a rule
+    declared before any fit): its row is then never a confirmatory
+    result."""
 
     quantity: str
     source: str
     rule: str
     otherwise: str
+    post_hoc: str = ""
 
 
 @dataclass(frozen=True)
@@ -158,7 +162,13 @@ def from_mapping(data: Mapping) -> Registration:
         rule=data["rule"],
         withheld=data.get("withheld", ""),
         criteria=tuple(
-            Criterion(c["quantity"], c["source"], c["rule"], c["otherwise"])
+            Criterion(
+                c["quantity"],
+                c["source"],
+                c["rule"],
+                c["otherwise"],
+                c.get("post_hoc", ""),
+            )
             for c in data.get("criterion", ())
         ),
         stopping=tuple(data.get("stopping", ())),

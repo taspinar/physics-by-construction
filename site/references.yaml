@@ -514,8 +514,10 @@ references:
     role: paper
     statement: >-
       Quoted from the arXiv version (v1, 10 May 1996), opened and read by the
-      implementer of F155 part 1 on 2026-11-25; the owner confirms these
-      statements on Issue #619 before part 1 merges. Abstract: "The RMS
+      implementer of F155 part 1 on 2026-11-25; the owner checked these
+      statements against the typeset article and confirmed them on Issue
+      #619 on 2026-11-25 (the human review of the selection protocol), the
+      weighted-rms formula included. Abstract: "The RMS
       deviations are less than 50 parts per million of the peak of the
       CMBR. For the Comptonization and chemical potential we find |y| <15 x
       10^-6 and |mu| <9 x 10^-5 (95% CL). There are also refinements in the
@@ -528,11 +530,10 @@ references:
       of 9 K and we use this model for the analysis in Table 4"; "When p is
       fixed at 0, i.e. there is only a Galactic deviation fit, the weighted
       rms deviation in the frequency range 2 to 21 cm-1 is 50 ppm (parts per
-      million) of the peak brightness. The weighted rms is defined as" a
-      formula that the PDF's text layer renders as a sum over nu of
-      (Delta_nu/sigma_nu)^2 over a sum over nu of 1/sigma_nu^2, under a
-      square root as read here (the owner checks the typeset formula),
-      "where Delta_nu is the difference of the model and the data at
+      million) of the peak brightness. The weighted rms is defined as" the
+      square root of the sum over nu of (Delta_nu/sigma_nu)^2 divided by the
+      sum over nu of 1/sigma_nu^2 (as the owner confirmed against the
+      typeset formula), "where Delta_nu is the difference of the model and the data at
       spectrum point nu, and sigma_nu is the uncertainty of the spectrum
       point nu. The formal chi2 per degree of freedom = 46/40 = 1.15"; "The
       best fit temperature is 2.728 K, which is determined by our choice of

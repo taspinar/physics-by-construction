@@ -21,7 +21,11 @@ open. The first two sessions wrote this plan only; the part-1 session of
 `cobe-firas-monopole`). After the owner's decision on question 10 (the
 NASA basis accepted, LAMBDA asked beside it), a second part-1 session the
 same day committed the sample and built part 1's steps 2 to 8 (see
-"Discoveries", part 1 session 2).
+"Discoveries", part 1 session 2). The owner's review of part 1
+(2026-11-25) confirmed the register entry, made the residual figure's
+rule post-hoc, asked for the view at phone width and 200 % text, and
+approved question 11 as an optional follow-up outside part 1 (see
+"Discoveries", part 1 session 3).
 
 **The registered follow-up below is not frozen yet.** It becomes frozen as
 "Freezing the registration" defines; until then nobody makes any of its
@@ -1151,12 +1155,17 @@ dependency group.
   of the residual figure ("within 1 sigma of the published residuals at
   every frequency", `reproduction.FIGURE_SIGMA`) was set in this session,
   because the plan said only "compared by the numbers it shows"; the
-  regenerated residuals lie within 0.02 sigma. The owner may change it
-  before part 1 merges.
+  regenerated residuals lie within 0.02 sigma. The owner's review of
+  part 1 (2026-11-25) keeps it as **post-hoc, not preregistered**: the
+  example registration's criterion carries the reason (`post_hoc`),
+  `reproduction.mark_post_hoc` copies it onto the row, and the report,
+  the claim's text, and the view show the verdict as "reproduced
+  (post-hoc rule, not a confirmatory result)".
 - (2026-11-25, part 1 session 2) The weighted rms is read as
   sqrt(sum (Delta/sigma)^2 / sum 1/sigma^2): the PDF's text layer gives
-  the formula's symbols without its layout. The register entry says so,
-  and the owner checks the typeset formula with the other quoted values.
+  the formula's symbols without its layout. The owner checked it and the
+  other quoted values against the typeset article and confirmed them on
+  the Issue (2026-11-25); the register entry records the confirmation.
 - (2026-11-25, part 1 session 2) Modules: `reproduction.py` was added (the
   rows from the registered criteria); `coil.py` is part 2's. The reference
   temperature is read from the card (`reference_temperature`), and the

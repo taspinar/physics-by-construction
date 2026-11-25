@@ -61,7 +61,9 @@ class Discrepancy:
     other than ``reproduced`` the type and its check. ``missing`` names what
     the paper's method needs that the inputs lack (``method``), with the
     place in the paper; ``terms`` the published budget's other terms
-    (``uncertainty``)."""
+    (``uncertainty``). ``post_hoc`` says why the row's rule was set after
+    a result had been seen: the verdict is then exploratory, never a
+    confirmatory result."""
 
     quantity: str
     published: str
@@ -73,6 +75,18 @@ class Discrepancy:
     missing: str = ""
     terms: tuple[str, ...] = field(default_factory=tuple)
     note: str = ""
+    post_hoc: str = ""
+
+
+POST_HOC_LABEL = "post-hoc rule, not a confirmatory result"
+
+
+def verdict_text(discrepancy: Discrepancy) -> str:
+    """The verdict as every export shows it: with the post-hoc label when
+    the row's rule was set after a result had been seen."""
+    if discrepancy.post_hoc:
+        return f"{discrepancy.verdict} ({POST_HOC_LABEL})"
+    return discrepancy.verdict
 
 
 def problems(discrepancy: Discrepancy) -> list[str]:
@@ -144,6 +158,7 @@ def as_dict(discrepancy: Discrepancy) -> dict:
         "missing": d.missing,
         "terms": list(d.terms),
         "note": d.note,
+        "post_hoc": d.post_hoc,
     }
 
 
@@ -160,4 +175,5 @@ def from_dict(data: Mapping) -> Discrepancy:
         data.get("missing", ""),
         tuple(data.get("terms", ())),
         data.get("note", ""),
+        data.get("post_hoc", ""),
     )

@@ -5,6 +5,7 @@ end to end, the static view, and the agent reviewer's replay."""
 
 import html
 import json
+import re
 import shutil
 from dataclasses import replace
 
@@ -266,6 +267,41 @@ def test_the_rows_say_what_the_derived_data_can_and_cannot_reproduce(built):
     assert all(not discrepancy.problems(r) for r in rows)
 
 
+def test_the_post_hoc_rule_of_the_figure_never_reads_as_confirmatory(built):
+    # The owner's review of 2026-11-25: the 1-sigma rule of the residual
+    # figure was set after a scratch fit had been seen.
+    plan = registration.load(EXAMPLE / "registration.toml")
+    post_hoc = {c.quantity for c in plan.criteria if c.post_hoc}
+    assert post_hoc == {"the residual figure"}
+    data = project.summary(built)
+    rows = {r.quantity: r for r in data["rows"]}
+    assert rows["the residual figure"].post_hoc
+    assert not any(r.post_hoc for q, r in rows.items() if q not in post_hoc)
+    label = discrepancy.POST_HOC_LABEL
+    claims = {c.id: c for c in data["research"].ledger.claims}
+    number = list(rows).index("the residual figure") + 1
+    assert label in claims[f"row-{number}"].text
+    assert sum(label in c.text for c in claims.values()) == 1
+    report = (built / "report.md").read_text()
+    figure_line = next(
+        x for x in report.splitlines() if x.startswith("| the residual figure")
+    )
+    assert f"| reproduced ({label}) |" in figure_line
+    assert f"- Row {number}: " in report and "Post-hoc rule: " in report
+    page = (built / "view.html").read_text()
+    assert f'<span class="post-hoc">{html.escape(label)}</span>' in page
+    assert page.count('class="post-hoc"') == 1
+    # A registration without the reason leaves the row unmarked.
+    plain = replace(
+        plan, criteria=tuple(replace(c, post_hoc="") for c in plan.criteria)
+    )
+    assert not any(r.post_hoc for r in reproduction.mark_post_hoc(data["rows"], plain))
+    assert (
+        discrepancy.from_dict(discrepancy.as_dict(rows["the residual figure"]))
+        == rows["the residual figure"]
+    )
+
+
 def test_a_failed_control_makes_every_row_not_evaluated(spectrum):
     evidence = sources.by_id(sources.load(EXAMPLE / "sources.toml"))
     failed = firas.Control(100, {}, 50, 50, 50, 90)
@@ -311,10 +347,21 @@ def test_the_view_is_static_and_shows_the_statuses_of_the_records(built):
         status = data["status"][claim.id]
         css = status.replace(" ", "-")
         cell = (
-            f'<td>{claim.id}</td><td><span class="status status-{css}">{status}</span>'
+            f'<td role="cell" data-label="Claim">{claim.id}</td>'
+            f'<td role="cell" data-label="Status"><span class="status status-{css}">'
+            f"{status}</span>"
         )
         assert cell in page, claim.id
     assert 'alt="Two panels' in page
+    # At phone width a table scrolls in its own box: the box takes the focus
+    # and is named by the caption above it, which wraps at the screen.
+    boxes = re.findall(
+        r'<p class="caption" id="(t-[0-9a-f]+)">[^<]+</p><div class="scroll"'
+        r' role="region" tabindex="0" aria-labelledby="\1"><table'
+        r' role="table" aria-labelledby="\1">',
+        page,
+    )
+    assert len(boxes) == page.count("<table") and len(set(boxes)) == len(boxes)
 
 
 def test_the_commands_record_decisions_in_the_chains(built, tmp_path):

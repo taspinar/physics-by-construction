@@ -124,7 +124,7 @@ def claims_of(rows: Sequence[d.Discrepancy]) -> list[Claim]:
     """One claim per row, with its runs and its source; plus the control."""
     out = []
     for number, row in enumerate(rows, start=1):
-        text = f"{row.quantity}: {row.verdict}"
+        text = f"{row.quantity}: {d.verdict_text(row)}"
         if row.type:
             text += f" ({row.type})"
         text += f"; regenerated {row.regenerated}; published {row.published}"
