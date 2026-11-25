@@ -633,9 +633,9 @@ the MAS830BC, q = 0.1 Ω, p = 0.8 %, n = 3:
 
 - u_res = q / sqrt(6) = 0.041 Ω.
 - The offset n q = 0.3 Ω cancels against the zero on the same range. If
-  a part had to be read on another range than the zero, u_off would be
-  sqrt(2) · 0.3 Ω / sqrt(3) = 0.24 Ω for q = 0.1 Ω on both (on the 2 kΩ
-  range, n q = 3 Ω, which would make u_off about 1.7 Ω).
+  the zero was read on the 200 Ω range and a part on the 2 kΩ range
+  (n q = 3 Ω there), u_off would be sqrt((0.3 Ω)^2 + (3 Ω)^2) / sqrt(3) ≈
+  1.74 Ω.
 - u_gain(X) = p |X| / sqrt(3) = 0.0046 |X|: 0.09 Ω for 20 Ω, 0.29 Ω for
   63 Ω, 0.46 Ω for the 100 Ω resistor.
 - Assumed for the example only (the readings decide): a spread of the
@@ -671,9 +671,11 @@ entry of the follow-up log, which names the digest, the merge commit, and
 its date, and a test that refuses any evidence whose measurement time
 (from the run records of M1 to M3 and the readings of M4) precedes that
 date. A plan file on a feature branch is not frozen: a branch can be
-rewritten, and `main` cannot. The supervisor's recommendation (open
-question 3) is to make the bench session after part 2 is merged, so that
-the analysis code is fixed before the measurement too.
+rewritten, and `main` cannot. The registration requires part 2 (the
+analysis code) to be merged into `main` before M1 is made (decided under
+open question 3, "Withheld part"), so that the analysis code is fixed
+before the measurement too; a bench session before that merge is a
+deviation, and its results are exploratory.
 
 **The checklist of part 0** (from the owner's review of 2026-11-25; part 0
 is its own pull request, with this plan alone):
@@ -689,7 +691,8 @@ is its own pull request, with this plan alone):
    the Mastech MAS830BC, 200 Ω range with q = 0.1 Ω, no capacitance range
    (G3 dropped). The registration names the meter and registers p = 0.8 %
    and n = 3 (the MAS830B manual's table, read by the owner on
-   2026-11-25; it replaces the supervisor's first proposal of a third
+   2026-11-25, Issue comment 7170543003, the source located in the answer
+   to open question 7; it replaces the supervisor's first proposal of a third
    party's 1.2 %); the owner approves or changes these values in the
    review of part 0's pull request.
 3. The owner has confirmed or changed the proposals for questions 1 to 6,
@@ -834,7 +837,7 @@ holds no key and records nothing.
 
 | Session | When | On the breadboard | What it needs | Commands |
 |---|---|---|---|---|
-| F (the follow-up) | after the freeze; recommended after part 2 is merged (open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
+| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
 
 **Reserved until the freeze:** M1 to M5 entirely, and in particular every
 multimeter reading of the inductor and the resistor, and
@@ -1103,8 +1106,14 @@ no stated licence (ADR 007 addendum, decision 1).*
    *Answered 2026-11-25 (the Issue's section "Owner's answer to question
    7 and the start of part 0"): the Mastech MAS830BC, 200 Ω range,
    resolution 0.1 Ω, no capacitance range; p = 0.8 %, n = 3 registered
-   from the MAS830B manual's table as the owner read it (the Issue's
-   comment of 2026-11-25), subject to the owner's review of part 0.*
+   from the MAS830B manual's table as the owner read it (the owner's
+   comment "Question 7, the accuracy of the meter: read by the owner
+   (2026-11-25)" on #619,
+   https://github.com/taspinar/physics-by-construction/issues/619#issuecomment-7170543003,
+   which names the source it read: the Mastech MAS830B manual at
+   manualshive.com, manual 1736114, page 6, the resistance table; it
+   replaces the Issue's earlier proposal of 1.2 %, made when no table was
+   at hand), subject to the owner's review of part 0.*
 8. **The guided route.** Name only the coding agent workflow, or also Agent
    Codeyard as optional. *Recommendation: follow SA9's decision in F145
    part 2.*
