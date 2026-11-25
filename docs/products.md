@@ -962,3 +962,49 @@ fake SDK shows the square wave's SDK calls, not the device's output. The
 LED model has no series resistance of its own and no temperature
 dependence. The coil-resistance measurement that discriminates between the
 explanations of the pilot's discrepancy is reserved for F155.
+
+## Decision record: the guided route pilot (F139, Issue #613, 2026-11-25)
+
+**A narrower go.** The guided route with Agent Codeyard
+(`taspinar/agent-codeyard`, the renamed Agentic Coding Template) at its
+commit `df5430aa` is optional; the manual route is the default of Path 1.
+`products/physics-lab/ROUTES.md` holds both, and the lighter option of a
+coding agent under `docs/coding-agent-workflow.md`, each with only the
+commands its pilot ran and with its conditions. Within the pilot's limit
+of two hours of active time the Codeyard route reached no open pull
+request: its feature review refuses a reviewer of the implementer's
+provider, and every role of the run used one provider. The owner decided
+on that record (2026-11-25); decision 42 allows a no-go or a narrower go
+at an exhausted limit, never an extension.
+
+**The feature** is the ring-down fit of the transient-response protocol:
+the starter gains the skeleton `my_lab/ringdown.py`, its
+`SPECIFICATION.md`, and twelve provided tests, the common task of the
+three runs, unchanged. The starter's `tests/conftest.py` skips them while
+the skeleton raises `NotImplementedError`, so the `starters` check stays
+green and still imports them at the pin;
+`tests/unit/test_starter_ringdown.py` shows in a copy of the starter that
+they run unchanged and pass once a working fit is in place. No solution is
+committed to the starter: the reference is
+`pbc.products.physics_lab.ringdown` of F145.
+
+**What the pilot measured.** The manual route and the coding agent without
+a template each passed the twelve tests within minutes (the agent: 164 s,
+18 turns); the Codeyard route took about 109 minutes of active time to an
+open pull request when it was run on after the limit with a reviewer of a
+second provider. Every run was made by a model or the supervisor session,
+inside a subscription, with no per-call billing; no learner was timed, so
+the workload of Path 1 stays open question 22, and `ROUTES.md` gives only
+an estimate of the feature's size, labelled as from one pilot. The gaps
+for Agent Codeyard (a configuration check that passes a refused review,
+retries of a configuration error, a planning that enlarges a small task,
+the template's own red first CI run, no place for a given failing test
+suite) are proposed work for that repository, recorded on the Issue. One
+gap is this repository's own: rule 2 of the sandbox profile of
+`docs/coding-agent-workflow.md` names commands only, and the agent's file
+tool wrote outside its scratch copy; the profile is restated on the pages
+of the exercises, so its change is a follow-up of its own, and
+`ROUTES.md` states the precaution meanwhile.
+The boundary test (`tests/unit/test_coding_agent_boundary.py`) now knows
+the template by both names: no file of the build or the checks depends
+on it.

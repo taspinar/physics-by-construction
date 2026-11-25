@@ -9,7 +9,14 @@ for your work are marked `YOUR WORK`:
 
 - `my_lab/sweep.py`, `refine`: which frequencies to measure after the first
   sweep;
-- `my_lab/agent.py`, `task`: what the agent is asked to do.
+- `my_lab/agent.py`, `task`: what the agent is asked to do;
+- `my_lab/ringdown.py`, `fit_ringdown`: the ring-down fit of the
+  transient-response protocol, specified in `SPECIFICATION.md` and checked
+  by the provided tests `tests/test_ringdown.py`, which you do not change.
+  Until you write it they are skipped with the reason "YOUR WORK"; then
+  they run (`uv run pytest tests/test_ringdown.py`). The routes to it, by
+  hand or with a coding agent, are in `products/physics-lab/ROUTES.md`
+  of the repository.
 
 ## The pin
 

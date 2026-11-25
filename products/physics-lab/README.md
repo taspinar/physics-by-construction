@@ -191,10 +191,20 @@ ready, and switches the generator on only while the watchdog runs. The
 watchdog is a protection in software, not an emergency stop: unplugging
 the USB cable is the one that does not depend on the computer.
 
+## Build a feature of your own
+
+`ROUTES.md` is how you build a feature of your lab from the starter: the
+ring-down fit of the transient-response protocol, by the manual route (the
+default, no coding agent and no model account) or, optionally, with a
+coding agent, among them the guided route with Agent Codeyard at a pinned
+revision. Each route is described with what its one pilot (F139) measured
+and with its conditions; no workload is promised.
+
 ## What is here
 
 | Path | What it is |
 |---|---|
+| `ROUTES.md` | The manual route and the guided routes for one feature of the starter, with the pilot's record |
 | `examples/` | The example input |
 | `fixtures/` | The product's one replay-fixture location (ADR 022 decision 8): the replay traces of the product's and the starter's agent route, and nothing else |
 | `starter/` | The starter a learner copies into their own project; see its `README.md` |
