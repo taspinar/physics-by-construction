@@ -485,8 +485,11 @@ with this input was made before it, as a diagnostic that no rule reads:
 see "Known before the freeze"):
 Before M0 the owner reads the room temperature, and it is recorded with
 its time and the instrument read. The time at which the AD3 was plugged
-in is recorded, and M0 starts no earlier than 45 minutes after it (the
-campaigns of F145 moved most in the first 40 minutes). Every sweep keeps its run record with
+in is recorded, and M0 starts no earlier than 45 minutes after it. The
+wait limits the strongest early movement seen in the campaigns of F145;
+their crossing still moved after 45 minutes (by about 1 % up to 89
+minutes), nothing shows that the circuit or the AD3 is stable after
+the wait, and the cause of the movement is not known. Every sweep keeps its run record with
 the input, the channel ranges, and the device's conditions at its start
 and end (board temperature, USB voltage and current). No rule reads
 these.
@@ -635,9 +638,10 @@ M0 or M1, and no rule of this registration reads them.
   ranges, the device and SDK). The campaigns in the node, 1 V, the 13
   coarse frequencies with 8 periods of 64 samples each, the channel
   ranges, the device and SDK; not in the program (an adaptive route and
-  ring-downs), and they record no device conditions. A campaign made 25
-  seconds after the diagnostic sweep agrees with it to 0.1 % in the
-  crossing. The pilot's sweep ran about 35 minutes after the AD3 was
+  ring-downs), and they record no device conditions. Observed: one
+  campaign made 25 seconds after the diagnostic sweep agrees with it to
+  0.1 % in the crossing. That is one pair; it does not show that the
+  program has no influence. The pilot's sweep ran about 35 minutes after the AD3 was
   plugged in, its board at 48.2 degrees C; the diagnostic sweep 26
   minutes after, its board at 44.0 degrees C.
   What they showed: the diagnostic sweep has f0 48,927 Hz and Q 1.50,
@@ -655,9 +659,10 @@ M0 or M1, and no rule of this registration reads them.
   What this does not establish: that a part changed, or why the crossing
   moves during a session. The differences are of the circuit as measured
   (the parts, the breadboard, the leads, and the instrument together).
-  No cause is known, and none is assigned or proposed here. No multimeter
-  reading of a part, no sweep at the R-L node, and no same-node sweep was
-  made.
+  No cause is known, and none is assigned or proposed here. Every sweep
+  named above had scope 2+ at node A, the capacitor's node. Not made: a
+  multimeter reading of a part, a sweep with scope 2+ at the R-L node
+  (M2), and a sweep with both scope inputs at W1 (M3).
   What follows for this registration: nothing in its rules. No rule and
   no threshold was changed after these measurements, the precondition
   (identity of the parts) included: if M2 differs from pilot run 3 as
@@ -688,13 +693,14 @@ inconclusive.
 
 Registration digest (sha256 of the bytes from the line after the begin
 marker to the line before the end marker, both lines included, with their
-final newline): `9aff80819243f8ea5b5e2a72f200befdc3956eaff1672e3c900a90c01f255b1a`
+final newline): `7ab46ac3627d57a5016360c5845f00facc238689adc0bd7abb1ad4bc55e5482f`
 (recomputed on 2026-11-26 in part 0, after the registration took in the
 owner's decisions of that day: "Known before the freeze" with the
 diagnostic sweep, M0, the wait after the plug-in, and the room
 temperature; and after every other edit of this plan. The earlier digests
 `89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, `8843f954…d0cd`, and
-`7cb06a38…0a0d1` are void). Recompute it with
+`7cb06a38…0a0d1`, and `9aff8081…5b1a` are void; the owner approved this
+text with three corrections on 2026-11-26, and they are made). Recompute it with
 `awk '/^<!-- registration:begin -->$/{f=1;next}/^<!-- registration:end -->$/{f=0}f' .agents/plans/619-research-workspace.md | shasum -a 256`;
 any edit between the markers before the freeze requires a new digest on
 this line, and after the freeze is a new registration.
