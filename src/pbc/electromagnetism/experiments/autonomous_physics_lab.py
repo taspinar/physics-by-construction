@@ -34,7 +34,7 @@ numbers of the page:
 import json
 import tempfile
 import textwrap
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import partial
 from pathlib import Path
 from typing import Any
@@ -49,7 +49,7 @@ from pbc.electromagnetism import pilot_record
 from pbc.electromagnetism.circuits import SeriesRLC
 from pbc.experiment import Experiment, main
 from pbc.figure_language import LINE, MARKER, MUTED, figsize, figure_style, finish
-from pbc.instruments import SIMULATED, SINE, Capture, Refused
+from pbc.instruments import SIMULATED, SINE, Capture, Driver, Refused
 from pbc.instruments.conformance import CallLog
 from pbc.instruments.contract import driver_waveforms
 from pbc.instruments.simulated import SimulatedRLCBench
@@ -142,19 +142,19 @@ class LossyLink:
         return Capture(capture.sample_rate_hz, capture.t, channels, capture.units)
 
 
-def behind_lossy_link(campaign: Campaign) -> None:
-    """Put the bench of ``campaign`` behind the lossy link, before its first
-    measurement (``lab.run_campaign``'s ``on_campaign``)."""
-    instrument = campaign.instrument
-    instrument._driver = LossyLink(instrument._driver)
+def behind_lossy_link(driver: Driver) -> Driver:
+    """The simulated bench behind the lossy link (``lab.run_campaign``'s
+    ``wrap_driver``): applied before the guarded instrument is built, so its
+    envelope check stays above the link."""
+    return LossyLink(driver)
 
 
-def on_another_circuit(circuit: SeriesRLC, seed: int):
-    """``on_campaign``: the bench holds ``circuit``, whatever the plan
+def on_another_circuit(circuit: SeriesRLC, seed: int) -> Callable[[Driver], Driver]:
+    """``wrap_driver``: the bench holds ``circuit``, whatever the plan
     declares."""
 
-    def swap(campaign: Campaign) -> None:
-        campaign.instrument._driver = SimulatedRLCBench(circuit=circuit, seed=seed)
+    def swap(replaced: Driver) -> Driver:
+        return SimulatedRLCBench(circuit=circuit, seed=seed)
 
     return swap
 
@@ -172,10 +172,17 @@ def refusals(plan) -> tuple[list[tuple[str, str, str]], int]:
         ("1 V at 80 kHz", True, (1.0, 80_000.0), False),
         ("1 V at 5 kHz after a stop", True, (1.0, 5000.0), True),
     )
+    logs: list[CallLog] = []
+
+    def logged(driver: Driver) -> Driver:
+        logs.append(CallLog(driver))
+        return logs[-1]
+
     for label, confirmed, arguments, stopped in requests:
-        instrument, _ = bench.make_instrument(plan, SIMULATED, confirmed=confirmed)
-        log = CallLog(instrument._driver)
-        instrument._driver = log
+        instrument, _ = bench.make_instrument(
+            plan, SIMULATED, confirmed=confirmed, wrap_driver=logged
+        )
+        log = logs[-1]
         if stopped:
             instrument.request_stop("stop requested by the learner")
         try:
@@ -572,7 +579,7 @@ def run() -> Experiment:
             scratch / "rlc",
             seed=seed,
             confirmed=True,
-            on_campaign=behind_lossy_link,
+            wrap_driver=behind_lossy_link,
         )
         records = rlc.records
         invalid = [r for r in records if not r.valid]
@@ -736,7 +743,7 @@ def run() -> Experiment:
             scratch / "other",
             seed=seed,
             confirmed=True,
-            on_campaign=on_another_circuit(actual, seed),
+            wrap_driver=on_another_circuit(actual, seed),
         )
         actual_reference = transient.reference(actual)
         experiment.number("actual-f0", actual_reference["f0_hz"], ",.0f")

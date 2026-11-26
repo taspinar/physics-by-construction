@@ -176,12 +176,16 @@ def run_campaign(
     on_record: Callable[[Record], None] | None = None,
     on_campaign: Callable[[Campaign], None] | None = None,
     clock: Callable[[], str] = utc_now,
+    wrap_driver: Callable[[Driver], Driver] | None = None,
 ) -> LabResult:
     """Run the campaign of ``plan`` by ``route`` in ``mode`` and export it to
     ``out_dir``. A refusal of the instrument (a stop, a timeout, an open
     interlock, a value outside the envelope) ends the segment, and what was
     measured before it is exported; ``resume_from_checkpoint`` continues an
-    interrupted campaign from its checkpoint in ``out_dir`` (``resume``)."""
+    interrupted campaign from its checkpoint in ``out_dir`` (``resume``).
+    ``wrap_driver`` changes the simulated bench below the guarded
+    instrument before it is built (``bench.make_instrument``); the agent
+    route's baselines run on fresh, unwrapped benches."""
     if route not in ROUTES:
         raise ValueError(f"unknown route {route!r}; one of {ROUTES}")
     instrument, rails = make_instrument(
@@ -192,6 +196,7 @@ def run_campaign(
         driver=driver,
         sample=sample,
         recorded_live=recorded_live,
+        wrap_driver=wrap_driver,
     )
     checkpoints = out_dir / "checkpoints"
     checkpoints.mkdir(parents=True, exist_ok=True)

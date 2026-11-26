@@ -12,7 +12,8 @@ Layout of a project directory::
     log.json         the follow-up log (log.py)
     states/control/  the positive control
     rows.json        the rows of the reproduction, typed
-    run.json         the run record: inputs by digest, execution modes
+    run.json         the run record: inputs by digest, execution modes, the
+                     digests of the stage code and of the outcome code
     report.md        the report export
     view.html        the static workspace view
 
@@ -226,6 +227,8 @@ def run(example: Path, directory: Path) -> Path:
             "sample": {graph.SAMPLE: digest_file(REPO_ROOT / graph.SAMPLE)},
             "modes": MODES,
             "code": research.code,
+            "outcome_code": graph.outcome_code_digest(),
+            "outcome_files": graph.outcome_file_digests(),
             "results": [asdict(r) for r in results],
         },
     )
@@ -489,6 +492,26 @@ def verify(directory: Path) -> list[str]:
     research = open_research(directory)
     if research.code != graph.code_digest():
         found.append("the analysis code changed after the run")
+    outcome = run_record.get("outcome_code")
+    if outcome is None:
+        found.append(
+            "the run records no digest of the outcome code (its rules cannot"
+            " be checked)"
+        )
+    elif outcome != graph.outcome_code_digest():
+        recorded = run_record.get("outcome_files", {})
+        current = graph.outcome_file_digests()
+        changed = sorted(
+            name
+            for name in recorded.keys() | current.keys()
+            if recorded.get(name) != current.get(name)
+        )
+        named = ", ".join(changed) if recorded and changed else "not recorded by file"
+        found.append(
+            "the outcome code changed after the run (the code that decides"
+            f" the rows, claims, or checks; changed: {named});"
+            " the recorded rows were decided by the old code"
+        )
     for invalid in records.check(research.ledger, directory / "states"):
         found.append(str(invalid))
     for name in research.branches:

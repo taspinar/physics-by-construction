@@ -106,10 +106,62 @@ ASSUMPTIONS = (
 )
 
 
+# The modules of this package that decide what a project records as its
+# outcome or apply one of its rules, beside the stages: the rows and their
+# rule constants (reproduction), the type rules (discrepancy), the claims
+# and their status (report), the reviewer's checks (review), the checks of
+# the registration, the sources, and the questions, the decision log, and
+# the run with its evaluator (project). ``outcome_code_digest`` covers them
+# with the stage code; a module that records nothing is in ``NOT_OUTCOME``,
+# and a test requires every module of the package in one of the two.
+OUTCOME_MODULES = (
+    "reproduction.py",
+    "discrepancy.py",
+    "report.py",
+    "review.py",
+    "registration.py",
+    "sources.py",
+    "questions.py",
+    "log.py",
+    "project.py",
+)
+# The static view, the agent reviewer (its findings enter only when a
+# recomputed check of ``review`` confirms them), the command line, and the
+# package's docstring.
+NOT_OUTCOME = ("view.py", "agent.py", "__main__.py", "__init__.py")
+PACKAGE = Path(__file__).parent
+
+
+def _stage_files() -> tuple[Path, ...]:
+    return (Path(firas.__file__), Path(cobe_firas.__file__), Path(__file__))
+
+
+def _digest_files(files) -> str:
+    return digest_value([digest_bytes(Path(p).read_bytes()) for p in files])
+
+
 def code_digest() -> str:
-    """The digest of the code the stages run."""
-    files = (Path(firas.__file__), Path(cobe_firas.__file__), Path(__file__))
-    return digest_value([digest_bytes(p.read_bytes()) for p in files])
+    """The digest of the code the stages run; a state written by other
+    stage code is not resumed."""
+    return _digest_files(_stage_files())
+
+
+def outcome_code_digest() -> str:
+    """The digest of every module that computes an outcome of the project
+    or applies one of its rules: the stage code and ``OUTCOME_MODULES``.
+    ``project.verify`` compares it with the run's, so a changed rule (a
+    threshold of ``reproduction``, say) is named, never silently applied
+    to rows decided by the old one."""
+    return _digest_files(
+        (*_stage_files(), *(PACKAGE / name for name in OUTCOME_MODULES))
+    )
+
+
+def outcome_file_digests() -> dict[str, str]:
+    """The digest of each file of ``outcome_code_digest``, by its name, so
+    ``project.verify`` names the file that changed and no other."""
+    files = (*_stage_files(), *(PACKAGE / name for name in OUTCOME_MODULES))
+    return {Path(p).name: digest_bytes(Path(p).read_bytes()) for p in files}
 
 
 def run_record(registration_digest: str) -> RunRecord:

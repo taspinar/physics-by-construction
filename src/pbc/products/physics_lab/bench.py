@@ -12,6 +12,7 @@ drives at most A / R through either circuit).
 """
 
 import dataclasses
+from collections.abc import Callable
 from typing import Any
 
 from pbc.instruments import (
@@ -98,6 +99,7 @@ def make_instrument(
     driver: Driver | None = None,
     sample: RecordedSample | None = None,
     recorded_live: bool = False,
+    wrap_driver: Callable[[Driver], Driver] | None = None,
 ) -> tuple[Instrument, Rails]:
     """The guarded instrument of ``mode`` and the rails of its channels.
 
@@ -106,7 +108,20 @@ def make_instrument(
     live envelope when it was measured live (``recorded_live``). Live: the
     opened ``driver`` (the caller closes it). The interlock
     ``circuit-confirmed`` is the learner's ``confirmed``; a recorded sample
-    drives nothing, so it has none."""
+    drives nothing, so it has none.
+
+    ``wrap_driver`` (simulated mode only) is the hook for changing the bench
+    below the guard: it receives the simulated driver and returns the driver
+    the instrument is built on, for example a lossy link around it, a call
+    log, or a bench holding another circuit. It is applied before the
+    ``Instrument`` is built, so the envelope check, the interlock, the
+    watchdog, and the stop stay in the instrument above whatever it
+    returns; nothing reaches the instrument's driver after it is built. The
+    returned driver must keep the simulated mode, so the run record's label
+    stays true. A recorded sample is a replay and a live driver is the
+    caller's own, so neither is wrapped."""
+    if wrap_driver is not None and mode != SIMULATED:
+        raise ValueError("only the simulated driver is wrapped (wrap_driver)")
     flag = {"confirmed": confirmed}
     interlock = Interlock(
         "circuit-confirmed", confirmation(plan, mode == LIVE), lambda: flag["confirmed"]
@@ -129,4 +144,8 @@ def make_instrument(
         rails = rails_for(LIVE)
     else:
         raise ValueError(f"unknown execution mode {mode!r}")
+    if wrap_driver is not None:
+        built = wrap_driver(built)
+        if getattr(built, "mode", None) != SIMULATED:
+            raise ValueError("the wrapped driver must keep the simulated mode")
     return Instrument(built, envelope), rails

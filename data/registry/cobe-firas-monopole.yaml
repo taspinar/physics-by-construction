@@ -27,9 +27,9 @@ rights:
     source: 'SPD-41 section IV, footnote 22 (above: public domain, no requirements on usage); NASA APD
       Policy-13 v1.8 (2023), section 3.2 f, read 2026-11-25: "If there are no other restrictions on the
       data, the data shall be released with a Creative Commons Zero license"; LAMBDA states no licence
-      for the file. The owner''s decision of 2026-11-25 (#619) accepts this basis; the owner has asked
-      LAMBDA for a written confirmation, sent and pending (written_confirmation below). A refusal or
-      a restriction in the answer reopens the gate: the sample is then removed'
+      for the file. The owner''s decision of 2026-11-25 (#619) accepts this basis. No written
+      confirmation was requested from LAMBDA (written_confirmation below). A restriction that the
+      rights holder states later reopens the gate: the sample is then removed'
   publication_of_figures:
     answer: permitted
     source: 'SPD-41 section IV, footnote 22 and section III, footnote 7, read 2026-11-25: "Government
@@ -46,8 +46,11 @@ rights:
       read 2026-11-25). The sample is the file unmodified; the paper is cited for the Table 4 columns;
       nothing of the paper''s text or figures is committed beyond the short statements of the register
       entry fixsen-1996-firas-spectrum'
-  written_confirmation: 'Requested from LAMBDA by the owner on 2026-11-25 (the owner''s decision on #619);
-    sent and pending. When the answer arrives it is recorded here in a change of its own.'
+  written_confirmation: 'None, and none requested. The owner first decided on 2026-11-25 to ask LAMBDA
+    for one beside the accepted basis, and withdrew that the same day before anything was sent (#619,
+    the comment "Owner''s decision on the FIRAS rights, changed"): LAMBDA''s contact page already states
+    that there is no cost involved in the use of LAMBDA and gives the acknowledgement it requests. An
+    earlier version of this card said "sent and pending"; that was never true.'
   attribution: 'COBE FIRAS CMB monopole spectrum, file firas_monopole_spec_v1.txt of LAMBDA (https://lambda.gsfc.nasa.gov/product/cobe/firas_monopole_spect.html),
     unmodified; columns 3 to 5 from Table 4 of Fixsen et al. 1996, ApJ 473, 576. We acknowledge the use
     of the Legacy Archive for Microwave Background Data Analysis (LAMBDA), part of the High Energy Astrophysics

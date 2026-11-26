@@ -510,3 +510,32 @@ def test_importing_the_product_loads_no_provider_driver_or_server():
     assert "http.server" not in loaded
     assert "pbc.agents.clients" not in loaded
     assert not any(m.startswith("pbc.agents.clients.") for m in loaded)
+
+
+# The guarded instrument's driver slot, read or assigned from outside the
+# contract (Issue #626): an attribute access ``._driver`` or a ``getattr``
+# of the name. This file names the pattern, so the scan leaves it out.
+DRIVER_SLOT = re.compile(r"\.\s*_driver\b|getattr\([^)]*['\"]_driver['\"]")
+INSTRUMENTS = ROOT / "src/pbc/instruments"
+
+
+def test_no_module_outside_the_instruments_reaches_the_driver_slot():
+    # A change below the guard goes through ``wrap_driver`` of
+    # ``pbc.products.physics_lab.bench.make_instrument``, applied before the
+    # Instrument is built; nothing else touches ``Instrument._driver``.
+    files = [
+        p
+        for pattern in ("src/**/*.py", "tests/**/*.py", "site/**/*.qmd")
+        for p in ROOT.glob(pattern)
+        if INSTRUMENTS not in p.parents and p.resolve() != Path(__file__).resolve()
+    ]
+    assert len(files) > 100
+    found = [
+        f"{p.relative_to(ROOT)}:{n}"
+        for p in files
+        for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1)
+        if DRIVER_SLOT.search(line)
+    ]
+    assert found == []
+    assert DRIVER_SLOT.search("instrument._driver = log")
+    assert DRIVER_SLOT.search('getattr(instrument, "_driver")')

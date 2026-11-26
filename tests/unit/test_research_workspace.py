@@ -372,6 +372,80 @@ def test_a_changed_state_or_input_is_found_and_the_failed_attempt_kept(built, tm
     assert "not fitted together" in failed.diagnostics[0]
 
 
+def test_a_changed_rule_of_the_outcome_code_is_named_by_verify(
+    built, tmp_path, monkeypatch
+):
+    # Issue #623: the code identity covered only the stages, so a changed
+    # rule constant left a project verifying with rows of the old rule.
+    run_record = json.loads((built / "run.json").read_text())
+    assert run_record["outcome_code"] == graph.outcome_code_digest()
+    package = tmp_path / "package"
+    shutil.copytree(graph.PACKAGE, package, ignore=shutil.ignore_patterns("*.pyc"))
+    rules = package / "reproduction.py"
+    text = rules.read_text()
+    assert "BOUND_REPRODUCED = 1.5\n" in text
+    rules.write_text(
+        text.replace("BOUND_REPRODUCED = 1.5\n", "BOUND_REPRODUCED = 1.6\n")
+    )
+    monkeypatch.setattr(graph, "PACKAGE", package)
+    found = project.verify(built)
+    assert len(found) == 1 and found[0].startswith("the outcome code changed")
+    # Only the changed file is named (Issue #628): a message that listed
+    # every module would pass a check for the name alone.
+    assert "changed: reproduction.py)" in found[0]
+    assert "review.py" not in found[0]
+    # The stage code is unchanged, so no state reads as written by other code.
+    assert not any("other code" in p for p in found)
+
+
+def test_a_run_without_the_outcome_digest_does_not_verify(built, tmp_path):
+    copy = _copy(built, tmp_path)
+    run_record = json.loads((copy / "run.json").read_text())
+    del run_record["outcome_code"]
+    (copy / "run.json").write_text(json.dumps(run_record))
+    assert any("no digest of the outcome code" in p for p in project.verify(copy))
+
+
+def test_every_module_of_the_workspace_is_classified_for_the_outcome_digest():
+    # A new module must be put in the outcome code or named as recording
+    # nothing; it is never left out of the digest by default.
+    modules = {p.name for p in graph.PACKAGE.glob("*.py")}
+    stages = {"firas.py", "graph.py"}
+    classified = set(graph.OUTCOME_MODULES) | set(graph.NOT_OUTCOME) | stages
+    assert modules == classified
+    assert not set(graph.OUTCOME_MODULES) & set(graph.NOT_OUTCOME)
+
+
+def test_the_uncertainty_type_of_a_bound_rests_on_a_quoted_term(spectrum):
+    # Issue #624: the branch between 1.5 and 3 times the published bound
+    # asserted its check and named an unquoted Galactic-model term.
+    evidence = sources.by_id(sources.load(EXAMPLE / "sources.toml"))
+    fit = firas.fit(spectrum, (firas.TEMPERATURE, firas.GALAXY, firas.COMPTON))
+    fit = replace(fit, parameters={**fit.parameters, firas.COMPTON: 0.0})
+    published = replace(evidence["y"], value=fit.bound(firas.COMPTON) / 2.0)
+    systematic = evidence["y_systematic"]
+    assert sources.problems([systematic], sources.register_entries()) == []
+    row = reproduction.bound_row(
+        firas.COMPTON, "b2", fit, published, 1e-6, "1e-6", systematic
+    )
+    assert row.verdict == discrepancy.NOT_REPRODUCED
+    assert row.type == discrepancy.UNCERTAINTY and not discrepancy.problems(row)
+    assert row.check.supports == reproduction.band_supports(row.check.values)
+    assert row.check.values["systematic"] == 4e-6
+    assert systematic.quote in row.terms[0] and "Galactic" not in row.terms[0]
+    # The recorded numbers decide: outside the band, or without a systematic
+    # term, they do not support the type.
+    for changed in ({"bound": row.check.values["published"]}, {"systematic": 0.0}):
+        assert not reproduction.band_supports({**row.check.values, **changed})
+    # Without a quoted term the row is unexplained, never typed by assertion.
+    bare = reproduction.bound_row(firas.COMPTON, "b2", fit, published, 1e-6, "1e-6")
+    assert bare.type == discrepancy.UNEXPLAINED and bare.check is None
+    assert not discrepancy.problems(bare)
+    mu = evidence["mu_systematic"]
+    assert sources.problems([mu], sources.register_entries()) == []
+    assert mu.value == 1e-5
+
+
 def test_a_project_is_never_overwritten(built):
     with pytest.raises(project.ProjectRefused, match="not empty"):
         project.run(EXAMPLE, built)
