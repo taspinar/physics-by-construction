@@ -480,13 +480,24 @@ ground. The live input `products/physics-lab/examples/live-pilot.toml`,
 unchanged (1 V, 5 kHz to 200 kHz, 13 coarse log-spaced points, channel 1
 on the 5 V range, channel 2 on the 50 V range). Close WaveForms first.
 
-Measurements, in this order, all after the freeze:
+Measurements, in this order, all after the freeze (one capacitor sweep
+with this input was made before it, as a diagnostic that no rule reads:
+see "Known before the freeze"):
 Before M0 the owner reads the room temperature, and it is recorded with
-its time and the instrument read (no rule reads it).
-M0. Warm-up: one capacitor sweep, wired as M1, made first. No rule reads
-    it; its raw data and its run record are kept in full, as for M1, and
-    its -90 degree crossing is reported beside M1's (see "Known before
-    the freeze").
+its time and the instrument read. The time at which the AD3 was plugged
+in is recorded, and M0 starts no earlier than 45 minutes after it (the
+campaigns of F145 moved most in the first 40 minutes). Every sweep keeps its run record with
+the input, the channel ranges, and the device's conditions at its start
+and end (board temperature, USB voltage and current). No rule reads
+these.
+M0. Conditioning sweep, registered here as the first measurement: one
+    capacitor sweep, wired as M1. No rule reads it. Its raw data and its
+    run record are kept in full, as for M1, and the difference of M1 from
+    M0 is reported: the -90 degree crossing and the phase at each of the
+    13 coarse frequencies. M0 replaces nothing: M1 is the sweep made
+    directly after M0, whatever either shows, and no sweep of M0 to M5
+    is left out, repeated, or exchanged because of its result (a failed
+    run is the case of "Stopping" below).
 M1. Capacitor sweep: scope 1+ at W1, 2+ at node A (as pilot run 2).
 M2. R-L node sweep: scope 1+ at W1, 2+ at the R-L node (as pilot run 3).
 M3. Same-node sweep: scope 1+ and 2+ both at W1. The physics lab reports
@@ -608,29 +619,55 @@ owner's answer of 2026-11-25). It is not evaluated and not reported as
 inconclusive; the question stays in the archive, deferred.
 
 Known before the freeze. The bench session of F145 (Issue #614) ran on
-this circuit before this text was frozen: fourteen campaigns of the
-physics lab with `products/physics-lab/examples/live-campaign-series-rlc.toml`
-(scope 2+ at node A, a frequency response and five ring-downs each), three
-on the evening of 2026-11-25 and eleven at about 13:15 on 2026-11-26, the
-room at about 20 degrees C at the second time and not measured at the
-first. By the owner's statement the parts are the pilot's and the circuit
-was not changed since 2026-11-22. They are not M1: another input, an
-adaptive route, and no rule of this registration reads their data. What
-they showed: the phase crosses -90 degrees at 49.5 to 50.2 kHz, where the
-pilot's run record has 47.0 kHz, about 6 % higher, which is about 12 %
-less in the product L C. The first campaign after hours of rest reads
-about 1 % higher than the following ones (49.99 kHz, then 49.52 to
-49.58 kHz in ten campaigns six seconds apart, with no further trend);
-the three of the evening read 50.18, 49.83, and 49.67 kHz. The pilot's
-two capacitor sweeps, minutes apart, agreed to 5 Hz. The cause is not
-known, and none is assigned or proposed here. No multimeter reading of a
-part, no sweep at the R-L node, and no same-node sweep was made. The precondition above (identity
-of the parts) is therefore expected to fail on L or C; that expectation
-was known at the freeze. No rule and no threshold of this registration
-was changed after these campaigns. One step was added because of them:
-M0, since P compares the phases of M1 with a model from M2, and a first
-sweep that reads 1 % higher in f0 than the next would add a phase
-residual that no correction of the channels removes.
+this circuit before this text was frozen: twenty-seven campaigns of the
+physics lab with `products/physics-lab/examples/live-campaign-series-rlc.toml`,
+three on the evening of 2026-11-25 and twenty-four between 13:14 and
+14:39 on 2026-11-26 (the AD3 plugged in at about 13:10, the room at about
+20 degrees C; the room was not measured on the evening or at the pilot).
+By the owner's statement the parts are the pilot's and the circuit was
+not changed since 2026-11-22. One diagnostic sweep with this
+registration's input (`live-pilot.toml`, scope 2+ at node A, as pilot
+run 2) was made at 13:36 on 2026-11-26, by the owner's decision of that
+day, to compare like with like. All these data are kept. None of them is
+M0 or M1, and no rule of this registration reads them.
+  Comparable with the pilot's capacitor sweep: the diagnostic sweep in
+  everything the run record states (the input, the node, the channel
+  ranges, the device and SDK). The campaigns in the node, 1 V, the 13
+  coarse frequencies with 8 periods of 64 samples each, the channel
+  ranges, the device and SDK; not in the program (an adaptive route and
+  ring-downs), and they record no device conditions. A campaign made 25
+  seconds after the diagnostic sweep agrees with it to 0.1 % in the
+  crossing. The pilot's sweep ran about 35 minutes after the AD3 was
+  plugged in, its board at 48.2 degrees C; the diagnostic sweep 26
+  minutes after, its board at 44.0 degrees C.
+  What they showed: the diagnostic sweep has f0 48,927 Hz and Q 1.50,
+  where the pilot's run record has 47,009 Hz and 1.55; at the common
+  frequency 43.0 kHz its phase is -69.2 degrees, the pilot's -74.9. The
+  -90 degree crossing of the campaigns moved during the session of
+  2026-11-26: 49.99 kHz at 5 minutes after the plug-in, 49.52 to
+  49.58 kHz at about 8 minutes (ten campaigns six seconds apart), 48.87 kHz
+  at 27 minutes, a lowest 48.46 kHz at 43 minutes, then rising to
+  48.92 kHz at 89 minutes. The three of the evening read 50.18, 49.83,
+  and 49.67 kHz within seven minutes. The pilot's two capacitor sweeps,
+  minutes apart, agreed to 5 Hz. No campaign read below 48.4 kHz. The
+  two protocols of a campaign agree on f0 and give different Q (1.47 to
+  1.49 from the sweep, 1.63 to 1.68 from the ring-down).
+  What this does not establish: that a part changed, or why the crossing
+  moves during a session. The differences are of the circuit as measured
+  (the parts, the breadboard, the leads, and the instrument together).
+  No cause is known, and none is assigned or proposed here. No multimeter
+  reading of a part, no sweep at the R-L node, and no same-node sweep was
+  made.
+  What follows for this registration: nothing in its rules. No rule and
+  no threshold was changed after these measurements, the precondition
+  (identity of the parts) included: if M2 differs from pilot run 3 as
+  that rule says, its stated consequence applies. Two steps of the
+  procedure were added because of them, and both are stated here as
+  added after seeing these data: the wait of 45 minutes after the
+  plug-in, and M0. Their reason: P compares the phases of M1 with a model
+  from M2, and a circuit that moves between the two sweeps would add a
+  phase residual that no correction of the channels removes. M5 against
+  M2 reports what movement remained.
 
 Withheld part. M1 to M5 are the confirmatory measurements; the pilot's data
 chose the thresholds. The analysis code that computes the outcomes is
@@ -651,12 +688,13 @@ inconclusive.
 
 Registration digest (sha256 of the bytes from the line after the begin
 marker to the line before the end marker, both lines included, with their
-final newline): `7cb06a3830174bd18e121610b7fc73e2de87efe805c71d4d5430d143c6d0a0d1`
-(recomputed on 2026-11-26 in part 0, after "Known before the freeze", M0,
-and the room temperature were added to the registration by the owner's
-choices of that day, and after every other edit of this plan; the earlier
-digests `89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, and
-`8843f954…d0cd` are void). Recompute it with
+final newline): `9aff80819243f8ea5b5e2a72f200befdc3956eaff1672e3c900a90c01f255b1a`
+(recomputed on 2026-11-26 in part 0, after the registration took in the
+owner's decisions of that day: "Known before the freeze" with the
+diagnostic sweep, M0, the wait after the plug-in, and the room
+temperature; and after every other edit of this plan. The earlier digests
+`89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, `8843f954…d0cd`, and
+`7cb06a38…0a0d1` are void). Recompute it with
 `awk '/^<!-- registration:begin -->$/{f=1;next}/^<!-- registration:end -->$/{f=0}f' .agents/plans/619-research-workspace.md | shasum -a 256`;
 any edit between the markers before the freeze requires a new digest on
 this line, and after the freeze is a new registration.
@@ -737,8 +775,9 @@ is its own pull request, with this plan alone):
    approving review is of its exact head; the merge is the freeze.
 6. No measurement M0 to M5 has been made, and none is made before the
    merge. (F145's campaigns on this circuit of 2026-11-25 and 2026-11-26
-   are not among them; the registration discloses them under "Known
-   before the freeze".)
+   and the one diagnostic capacitor sweep of 2026-11-26 are not among
+   them; the registration discloses them under "Known before the
+   freeze".)
 7. After the merge: the comment on #619 with the merge commit and the
    digest; from then on no edit between the markers (a change is a new
    registration).
@@ -873,14 +912,15 @@ holds no key and records nothing.
 
 | Session | When | On the breadboard | What it needs | Commands |
 |---|---|---|---|---|
-| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), a room thermometer read by the owner, about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M0, M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
+| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), a room thermometer read by the owner, the AD3 plugged in 45 minutes before M0, about two hours with that wait | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M0, M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
 
 **Reserved until the freeze:** M0 to M5 entirely, and in particular every
 multimeter reading of the inductor and the resistor, and
 any sweep with both probes on one node. F145's bench sessions (the live
 campaigns of #614) use the same circuit; they make none of these
-measurements. Its first session ran before the freeze (fourteen campaigns
-on 2026-11-25 and 2026-11-26), and the registration states what it showed. The reproduction track needs no bench.
+measurements. Its first session ran before the freeze (twenty-seven campaigns
+on 2026-11-25 and 2026-11-26), and the registration states what it showed,
+with the one diagnostic capacitor sweep the owner decided on 2026-11-26. The reproduction track needs no bench.
 
 After session F the owner states the licence of the readings and exports
 (CC BY 4.0, as for the pilot) on the Issue, and part 2b declares them as
