@@ -39,9 +39,10 @@ digest last (see "Discoveries", part 0).
 **Part 0, continued (2026-11-26).** F145's bench session ran on the circuit
 before the freeze and read the resonance higher than the pilot. By the
 owner's decisions of that day the registration states what was seen, with
-one diagnostic capacitor sweep made before the freeze, and adds two steps of
-procedure: the conditioning sweep M0 and a wait of 45 minutes after the AD3
-is plugged in. No rule and no threshold changed. The supervisor made these
+one diagnostic capacitor sweep made before the freeze, and adds four steps of
+procedure: the conditioning sweep M0, a wait of 45 minutes after the AD3
+is plugged in, and two records that no rule reads (the room temperature
+with the plug-in time, and the device's conditions with every sweep). No rule and no threshold changed. The supervisor made these
 edits by hand and recomputed the digest last (see "Discoveries", part 0 of
 2026-11-26).
 
@@ -675,13 +676,15 @@ M0 or M1, and no rule of this registration reads them.
   What follows for this registration: nothing in its rules. No rule and
   no threshold was changed after these measurements, the precondition
   (identity of the parts) included: if M2 differs from pilot run 3 as
-  that rule says, its stated consequence applies. Two steps of the
-  procedure were added because of them, and both are stated here as
-  added after seeing these data: the wait of 45 minutes after the
-  plug-in, and M0. Their reason: P compares the phases of M1 with a model
-  from M2, and a circuit that moves between the two sweeps would add a
-  phase residual that no correction of the channels removes. M5 against
-  M2 reports what movement remained.
+  that rule says, its stated consequence applies. Four steps of the
+  procedure were added because of them, all stated here as added after
+  seeing these data. Two change how the session runs: the wait of 45
+  minutes after the plug-in, and M0. Their reason: P compares the phases
+  of M1 with a model from M2, and a circuit that moves between the two
+  sweeps would add a phase residual that no correction of the channels
+  removes. Two only record, and no rule reads them: the room temperature
+  with the time of the plug-in, and the device's conditions kept with
+  every sweep. M5 against M2 reports what movement remained.
 
 Withheld part. M1 to M5 are the confirmatory measurements; the pilot's data
 chose the thresholds. The analysis code that computes the outcomes is
@@ -702,14 +705,16 @@ inconclusive.
 
 Registration digest (sha256 of the bytes from the line after the begin
 marker to the line before the end marker, both lines included, with their
-final newline): `7ab46ac3627d57a5016360c5845f00facc238689adc0bd7abb1ad4bc55e5482f`
+final newline): `3e4cfd1ae9a4fde8e116df21c3b5035ef05b63322605f94e25a466ee13f0a429`
 (recomputed on 2026-11-26 in part 0, after the registration took in the
 owner's decisions of that day: "Known before the freeze" with the
 diagnostic sweep, M0, the wait after the plug-in, and the room
 temperature; and after every other edit of this plan. The earlier digests
 `89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, `8843f954…d0cd`,
-`7cb06a38…a0d1`, and `9aff8081…5b1a` are void; the owner approved this
-text with three corrections on 2026-11-26, and they are made). The owner's
+`7cb06a38…a0d1`, `9aff8081…5b1a`, and `7ab46ac3…482f` are void; the owner
+approved the text with three corrections on 2026-11-26, and they are made;
+review round 3 then corrected the count of the steps added after the data,
+from two to four, which the owner sees on the exact head). The owner's
 decisions of 2026-11-26 that this text rests on are on Issue #619:
 [the choices on the difference from the pilot](https://github.com/taspinar/physics-by-construction/issues/619#issuecomment-7192100869)
 and [the diagnostic sweep, the wait, and the three corrections](https://github.com/taspinar/physics-by-construction/issues/619#issuecomment-7194064189).
