@@ -1102,3 +1102,72 @@ support is what F140's pilot showed, the frequency response on the series
 RLC circuit; the ring-down and the LED pair are simulator-only until the
 owner's bench sessions, and the model campaigns are recorded later, in
 their own pull request, which then changes the page's wording.
+
+## The Scientific Research Workspace, part 2: the original track (F155, Issue #619, 2026-11-26)
+
+Part 2 adds the original track to `pbc.products.research_workspace`: the
+coil-loss question on `ad3-rlc-pilot`, whose follow-up was registered and
+frozen on `main` by part 0 (the merge of pull request 625). The example is
+`products/research-workspace/examples/coil-loss/`; the run is the same
+command as the reproduction's, and the workspace chooses the track by the
+example's `freeze.toml`.
+
+**The registration as data.** `registration.md` is the text between the
+registration's markers in `.agents/plans/619-research-workspace.md`, byte
+for byte, and its sha256 must be the digest of `freeze.toml`, or the run is
+refused; a test compares it with the frozen digest and with the plan.
+`registration.toml` restates it for the workspace's checks: five
+explanations (DC, AC for G1; MISMATCH, CIRCUIT, BOTH for G2), no outcome
+predicted by two, and `exceeds` and `inconclusive` predicted by none.
+
+**The rules** (`coil.py`): the meter's uncertainty model of M4 (the zero
+and its drift, the offset that cancels on one range, the gain part that
+more readings do not reduce, the third party's 1.2 % as a sensitivity),
+the impedance of the R-L node sweep with and without the channels'
+correction, R_L0, u_L, L, C, P0, P1, Rise, u_hi, the precondition, G1 and
+G2 with each predicate evaluated apart, and the reports that no rule reads
+(M1 against M0, M5 against M2, the meter check of R_s_bb). The precondition
+compares M2 with pilot run 3 read with the same R_s_bb, so that it compares
+the two sweeps and not two resistances.
+
+**The session** (`followup.py`): the owner's bench records, read from two
+templates and the physics lab's exports, refused when malformed or
+incomplete, refused when any measurement precedes the freeze, with the
+deviations from the procedure reported and a second failed run stopping
+the session as `inconclusive`.
+
+**The controls** (`controls.py`): simulated sessions under each
+explanation and both branches of the precondition, written in the owner's
+format and evaluated through the same reader, at the noise level the
+pilot's own phasor fits leave; and the boundary cases of every threshold,
+whose expected outcomes are written out by hand from the registration's
+text. The physics lab's simulated bench is not used: it holds a constant
+resistance and probes one node, and the closed form gives the three nodes
+and a loss that depends on the frequency.
+
+**The outcome code's identity.** `coil.py`, `followup.py`, `controls.py`,
+`original.py`, and the pilot's reader that computes the phasors are in the
+digest of the outcome code (`graph.OUTCOME_MODULES`). Its identity is
+pinned for the follow-up in
+`products/research-workspace/examples/coil-loss/outcome-code.toml` (the
+digest, each file's digest, and the time it was pinned), merged with part 2
+before M1; a unit test fails while the code differs from the pin, so a
+change of an outcome module changes the pin in the same reviewed commit.
+The follow-up log records the current identity and the pin in its second
+entry, after the freeze. A session evaluated by code other than the pin, or
+with a pin later than the start of M1, is reported as a deviation that
+names the changed files, and its outcomes are marked exploratory in the
+claims, the report, the view, and the log (which then resolves no
+finding). The reference for a session is the pin's digest that the
+supervisor records on Issue #619 after part 2's merge (a GitHub comment,
+time-stamped by GitHub): the session records it as
+`[session] outcome_code_pin`, and a pin that differs from it is a deviation
+too ("the pin changed after the session recorded it"), even when the code
+equals the changed pin and its time was left as it was. A change of the pin
+must also update its time, and the review of such a commit checks both.
+
+**What part 2 does not claim.** The follow-up's evidence is `not
+evaluated`: no measurement M0 to M5 has been made, and the bench session is
+the owner's after this part is merged. The pilot's numbers are
+exploratory, because its data chose the thresholds. The original track has
+no agent reviewer yet; `review` and `record` refuse its projects.

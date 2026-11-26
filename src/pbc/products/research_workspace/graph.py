@@ -23,7 +23,7 @@ from typing import Any
 import numpy as np
 
 from pbc.data import REPO_ROOT
-from pbc.data.reference import cobe_firas
+from pbc.data.reference import ad3_rlc_pilot, cobe_firas
 from pbc.data.reference.cobe_firas import Spectrum, read_spectrum
 from pbc.evidence.records import RunRecord, digest_bytes, digest_value
 from pbc.evidence.resumable import Branch, Research, Stage
@@ -111,7 +111,11 @@ ASSUMPTIONS = (
 # rule constants (reproduction), the type rules (discrepancy), the claims
 # and their status (report), the reviewer's checks (review), the checks of
 # the registration, the sources, and the questions, the decision log, and
-# the run with its evaluator (project). ``outcome_code_digest`` covers them
+# the run with its evaluator (project); for the original track (part 2) the
+# registered analysis and its rules (coil), the session's reader and its
+# admission (followup), the positive controls (controls), and the run with
+# its evaluator (original), with the pilot's reader that computes the
+# phasors (``ad3_rlc_pilot``). ``outcome_code_digest`` covers them
 # with the stage code; a module that records nothing is in ``NOT_OUTCOME``,
 # and a test requires every module of the package in one of the two.
 OUTCOME_MODULES = (
@@ -124,16 +128,34 @@ OUTCOME_MODULES = (
     "questions.py",
     "log.py",
     "project.py",
+    "coil.py",
+    "followup.py",
+    "controls.py",
+    "original.py",
 )
-# The static view, the agent reviewer (its findings enter only when a
+# The static views, the agent reviewer (its findings enter only when a
 # recomputed check of ``review`` confirms them), the command line, and the
 # package's docstring.
-NOT_OUTCOME = ("view.py", "agent.py", "__main__.py", "__init__.py")
+NOT_OUTCOME = (
+    "view.py",
+    "original_view.py",
+    "agent.py",
+    "__main__.py",
+    "__init__.py",
+)
 PACKAGE = Path(__file__).parent
 
 
 def _stage_files() -> tuple[Path, ...]:
     return (Path(firas.__file__), Path(cobe_firas.__file__), Path(__file__))
+
+
+def _outcome_files() -> tuple[Path, ...]:
+    return (
+        *_stage_files(),
+        Path(ad3_rlc_pilot.__file__),
+        *(PACKAGE / name for name in OUTCOME_MODULES),
+    )
 
 
 def _digest_files(files) -> str:
@@ -152,16 +174,13 @@ def outcome_code_digest() -> str:
     ``project.verify`` compares it with the run's, so a changed rule (a
     threshold of ``reproduction``, say) is named, never silently applied
     to rows decided by the old one."""
-    return _digest_files(
-        (*_stage_files(), *(PACKAGE / name for name in OUTCOME_MODULES))
-    )
+    return _digest_files(_outcome_files())
 
 
 def outcome_file_digests() -> dict[str, str]:
     """The digest of each file of ``outcome_code_digest``, by its name, so
     ``project.verify`` names the file that changed and no other."""
-    files = (*_stage_files(), *(PACKAGE / name for name in OUTCOME_MODULES))
-    return {Path(p).name: digest_bytes(Path(p).read_bytes()) for p in files}
+    return {Path(p).name: digest_bytes(Path(p).read_bytes()) for p in _outcome_files()}
 
 
 def run_record(registration_digest: str) -> RunRecord:

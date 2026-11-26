@@ -9,10 +9,11 @@ its branches and failed attempts, typed discrepancies, review findings, the
 human's decisions, and a report in which every claim has its run or source
 link and its evidence status.
 
-This is part 1 of F155 (Issue #619): the workspace and the reproduction
-track. The original track (the coil-loss question on `ad3-rlc-pilot`), the
-capstone page RR8, the reference workflow, the rubric, the manual and
-guided routes, and the starter come in later parts.
+Parts 1 and 2 of F155 (Issue #619): the workspace, the reproduction track,
+and the original track (the coil-loss question on `ad3-rlc-pilot`, its
+follow-up registered and frozen before any measurement). The follow-up's
+bench session, the capstone page RR8, the reference workflow, the rubric,
+the manual and guided routes, and the starter come in later parts.
 
 ## Product brief
 
@@ -122,6 +123,74 @@ The rows the run writes, from the committed sample:
   its section 3.3. It asks for a fit with that covariance, so no revision
   of the report's words resolves it.
 
+## The original track (part 2)
+
+**The question.** Why does the ideal series RLC model fail on the pilot's
+circuit (`ad3-rlc-pilot`)? G1: is the loss near the resonance (about
+63 ohm) the DC resistance of the parts, or a loss that exists only in
+alternating current? G2: are the rise of that loss with the frequency and
+the growing phase residual properties of the circuit or of the two
+channels? The follow-up that answers them is registered in
+`examples/coil-loss/registration.md`, the frozen text copied byte for byte
+from the plan of Issue #619; `examples/coil-loss/freeze.toml` names its
+digest, the merge commit on `main` that froze it, and the time of that
+merge. Evidence measured before that time is refused.
+
+```
+uv run --locked python -m pbc.products.research_workspace run \
+    --example products/research-workspace/examples/coil-loss --project /tmp/coil
+```
+
+The run takes about ten seconds and needs no bench and no model account. It
+writes the same exports as the reproduction: `report.md`, `view.html`,
+`ledger.json`, `log.json`, `run.json`. What it holds:
+
+- **The analysis of the existing sweeps (exploratory).** The pilot's R-L
+  node sweep read with the registration's quantities and the nominal
+  100 ohm: R_L at the 13 coarse frequencies, R_L0, L, C, P0, and how much
+  an assumed channel mismatch at the registration's thresholds would
+  change them. A phase of 0.3 degrees changes Rise by more than three of
+  its uncertainties: the pilot cannot separate a mismatch from a loss that
+  grows with the frequency. These data chose the thresholds; they confirm
+  nothing.
+- **The positive controls (simulated).** Whole sessions written as the
+  owner will write them and read by the same code, under each
+  explanation: DC (G1 `accounted`), AC (G1 `short`, G2 `remains`), a loss
+  too steep for G1 (`inconclusive`, its undecidable case), MISMATCH (G2
+  `artefact`), BOTH (G2 `mixed`), the pilot's own parts (the precondition
+  met) and an inductor 5 % larger (the precondition not met: the
+  conclusions scoped, G1 for the pilot `not evaluated`, G2 carried over).
+  The noise is the level the pilot's own phasor fits leave.
+- **The boundary cases.** Values below, at, and above every threshold,
+  each with the outcome the registration's text gives at that value, and
+  the meter model on constructed readings.
+- **The follow-up.** `not evaluated` until the bench session: G1, G2, and
+  the precondition are claims on missing runs. The follow-up log begins
+  with the freeze and the identity of the outcome code, beside the identity
+  pinned for the follow-up in `examples/coil-loss/outcome-code.toml`. A
+  session evaluated by other code, with a pin later than M1, or with a
+  pin other than the one it recorded (`[session] outcome_code_pin`, the
+  pin's digest recorded on Issue #619 after part 2's merge, which is the
+  reference) is a deviation, and its outcomes are marked exploratory. A
+  change of the pin must also update its time.
+
+**The bench session** is the owner's, after part 2 is merged into `main`.
+Its records go in a folder `session/` beside the example's inputs:
+`session.toml` from `examples/coil-loss/session-template.toml` (the time
+the AD3 was plugged in, the room temperature with its time and the
+thermometer, one entry per run of M0, M1, M2, M3, M5), `readings.toml` from
+`examples/coil-loss/readings-template.toml` (the multimeter's readings of
+M4), and the physics lab's export of every sweep. The workspace refuses a
+template that is not filled in, a malformed or incomplete file, a meter,
+range, resolution, or specification other than the registered ones, a run
+record without the live input and the device's conditions, a valid sweep
+repeated, and any measurement made before the freeze. It reports, without
+changing any rule, a wait shorter than 45 minutes and a measurement out of
+its registered order. Each attempt has its own export folder; a failed run
+that stopped before the physics lab wrote an export is recorded with an
+empty `directory` and its reason. A run that failed twice stops the
+session; the follow-up is then `inconclusive` with its reasons.
+
 ## The routes
 
 - **Scripted:** the commands above. The scripted reviewer recomputes a fixed
@@ -151,7 +220,12 @@ The rows the run writes, from the committed sample:
   are not in the file.
 - The fits are linear and weighted with the diagonal uncertainties.
 - The registration of the reproduction is recorded by digest; it is not
-  frozen on `main` (a plan on a feature branch is not frozen).
+  frozen on `main` (a plan on a feature branch is not frozen). The
+  registration of the original track is frozen (`examples/coil-loss/freeze.toml`).
+- The original track has no agent reviewer yet: `review` and `record`
+  refuse its projects, and its outcomes are decided by the registered rules.
+- The original track's thresholds were chosen after seeing the pilot's
+  data; only the follow-up's measurements M1 to M5 are confirmatory.
 - Rights: the file is public domain under NASA's policy for mission data,
   accepted by the owner on 2026-11-25; no written confirmation was
   requested from LAMBDA (the dataset's card).
@@ -162,6 +236,13 @@ The rows the run writes, from the committed sample:
   (the questions considered, with their decisions), `registration.toml`
   (the registered plan), `sources.toml` (the published values and the words
   they rest on).
+- `examples/coil-loss/`: the inputs of the original track:
+  `registration.md` (the frozen registration), `freeze.toml` (its digest,
+  commit, and time), `registration.toml` (the same registration as the
+  workspace's data: five explanations, each with the outcome it predicts),
+  `questions.toml` (the questions considered), `outcome-code.toml` (the
+  outcome code's identity pinned for the follow-up), and the two templates
+  of the bench session.
 - `fixtures/`: the replay fixture of the agent reviewer (a placeholder).
 
 Data: NASA COBE FIRAS / LAMBDA; Fixsen et al. 1996, ApJ 473, 576. We

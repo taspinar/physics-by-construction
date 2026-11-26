@@ -1,8 +1,12 @@
 """``python -m pbc.products.research_workspace <command>``.
 
-- ``run --example DIR --project DIR``: run the reproduction track end to end
-  from the inputs in ``DIR`` into a new project directory; writes the
-  report, the evidence ledger, and the static view.
+- ``run --example DIR --project DIR``: run a track end to end from the
+  inputs in ``DIR`` into a new project directory; writes the report, the
+  evidence ledger, and the static view. An example with ``freeze.toml`` is
+  the original track (the coil-loss follow-up, F155 part 2); its bench
+  session, once made, is the folder ``session/`` beside it (the templates
+  ``session-template.toml`` and ``readings-template.toml``). Without it the
+  follow-up's evidence is ``not evaluated``.
 - ``verify --project DIR``: check every chain and digest of a project.
 - ``view --project DIR --out FILE``: write the static view again.
 - ``decide --project DIR --subject S --decision D --reason R --revisit V``:
@@ -75,6 +79,16 @@ def main(argv: list[str] | None = None) -> int:
 
     from pbc.products.research_workspace import project
 
+    if arguments.command in ("review", "record", "accept-finding") and (
+        project.track(arguments.project) == "original"
+    ):
+        print(
+            "refused: the original track has no agent reviewer yet; its outcomes"
+            " are decided by the registered rules",
+            file=sys.stderr,
+        )
+        return 1
+
     if arguments.command == "run":
         try:
             path = project.run(arguments.example, arguments.project)
@@ -90,10 +104,8 @@ def main(argv: list[str] | None = None) -> int:
         print("verified" if not problems else f"{len(problems)} problems")
         return 1 if problems else 0
     if arguments.command == "view":
-        from pbc.products.research_workspace import view
-
         out = arguments.out or arguments.project / "view.html"
-        view.write(project.summary(arguments.project), out)
+        project.write_view(arguments.project, out)
         print(f"wrote {out}")
         return 0
     if arguments.command in ("decide", "accept-finding"):

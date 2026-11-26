@@ -112,6 +112,13 @@ def run(example: Path, directory: Path) -> Path:
     """Run the reproduction track end to end from the inputs in ``example``
     into the new project ``directory``; returns the report's path."""
     example, directory = Path(example), Path(directory)
+    from pbc.products.research_workspace import original
+
+    if original.is_example(example):
+        try:
+            return original.run(example, directory)
+        except original.OriginalRefused as reason:
+            raise ProjectRefused(str(reason)) from reason
     if directory.exists() and any(directory.iterdir()):
         raise ProjectRefused(
             f"{directory} is not empty: a project is never overwritten"
@@ -260,8 +267,18 @@ def open_research(directory: Path):
     return research
 
 
+def track(directory: Path) -> str:
+    """The track of a saved project: ``reproduction`` or ``original``."""
+    return _read_json(Path(directory) / "run.json").get("track", "reproduction")
+
+
 def context(directory: Path) -> review.Context:
     """What the reviewer's checks read, from a saved project."""
+    if track(directory) == "original":
+        raise ProjectRefused(
+            "the original track has no agent reviewer yet: its outcomes are"
+            " decided by the registered rules"
+        )
     data = summary(directory)
     return review.Context(
         load_card(REGISTRY_DIR / f"{DATASET}.yaml"),
@@ -284,6 +301,10 @@ def save_log(directory: Path, log: worklog.Log) -> None:
 def summary(directory: Path) -> dict:
     """Everything the report and the view show, read from the project."""
     directory = Path(directory)
+    if track(directory) == "original":
+        from pbc.products.research_workspace import original
+
+        return original.summary(directory)
     research = open_research(directory)
     fits = graph.fits_of(research)
     trial = _read_json(directory / "states" / CONTROL_FILE)
@@ -318,8 +339,26 @@ def summary(directory: Path) -> dict:
     }
 
 
+def write_view(directory: Path, out: Path) -> None:
+    """Write the static view of a saved project of either track to ``out``."""
+    if track(directory) == "original":
+        from pbc.products.research_workspace import original_view
+
+        original_view.write(summary(directory), Path(out))
+        return
+    from pbc.products.research_workspace import view
+
+    view.write(summary(directory), Path(out))
+
+
 def write_exports(directory: Path) -> None:
     from pbc.products.research_workspace import view
+
+    if track(directory) == "original":
+        from pbc.products.research_workspace import original
+
+        original.write_exports(directory)
+        return
 
     data = summary(directory)
     text, _ = render_markdown(data)
@@ -479,6 +518,10 @@ def render_markdown(data: dict):
 def verify(directory: Path) -> list[str]:
     """Every problem of the project's chains and digests; empty when none."""
     directory = Path(directory)
+    if track(directory) == "original":
+        from pbc.products.research_workspace import original
+
+        return original.verify(directory)
     found = []
     run_record = _read_json(directory / "run.json")
     for name, digest in run_record["inputs"].items():
