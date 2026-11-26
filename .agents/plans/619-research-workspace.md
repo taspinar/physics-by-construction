@@ -36,6 +36,15 @@ questions as decided, added the Discoveries entry of part 1 session 3,
 named the follow-ups #623 and #624 before part 2, and recomputed the
 digest last (see "Discoveries", part 0).
 
+**Part 0, continued (2026-11-26).** F145's bench session ran on the circuit
+before the freeze and read the resonance higher than the pilot. By the
+owner's decisions of that day the registration states what was seen, with
+one diagnostic capacitor sweep made before the freeze, and adds two steps of
+procedure: the conditioning sweep M0 and a wait of 45 minutes after the AD3
+is plugged in. No rule and no threshold changed. The supervisor made these
+edits by hand and recomputed the digest last (see "Discoveries", part 0 of
+2026-11-26).
+
 **The registration below is no longer a draft. It is frozen when this
 text is on `main` after the owner's approving review** of the exact head
 of part 0's pull request, as "Freezing the registration" defines; until
@@ -698,9 +707,19 @@ final newline): `7ab46ac3627d57a5016360c5845f00facc238689adc0bd7abb1ad4bc55e5482
 owner's decisions of that day: "Known before the freeze" with the
 diagnostic sweep, M0, the wait after the plug-in, and the room
 temperature; and after every other edit of this plan. The earlier digests
-`89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, `8843f954…d0cd`, and
-`7cb06a38…0a0d1`, and `9aff8081…5b1a` are void; the owner approved this
-text with three corrections on 2026-11-26, and they are made). Recompute it with
+`89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, `8843f954…d0cd`,
+`7cb06a38…a0d1`, and `9aff8081…5b1a` are void; the owner approved this
+text with three corrections on 2026-11-26, and they are made). The owner's
+decisions of 2026-11-26 that this text rests on are on Issue #619:
+[the choices on the difference from the pilot](https://github.com/taspinar/physics-by-construction/issues/619#issuecomment-7192100869)
+and [the diagnostic sweep, the wait, and the three corrections](https://github.com/taspinar/physics-by-construction/issues/619#issuecomment-7194064189).
+The data named under "Known before the freeze" are kept on the owner's
+machine, outside the repository, in the folder `pbc-bench-sessions` beside
+the checkout: `2026-11-25-series-rlc` with `-run2` and `-run3`,
+`2026-11-26-series-rlc` with `-run2` to `-run24`, and
+`2026-11-26-pilot-input-diagnostic`; F145 declares the campaigns as a
+dataset (Issue #614), and part 2b declares the diagnostic sweep with the
+follow-up's own data. Recompute it with
 `awk '/^<!-- registration:begin -->$/{f=1;next}/^<!-- registration:end -->$/{f=0}f' .agents/plans/619-research-workspace.md | shasum -a 256`;
 any edit between the markers before the freeze requires a new digest on
 this line, and after the freeze is a new registration.
@@ -1372,6 +1391,19 @@ dependency group.
   `review-covariance-weighting`; the bound rows keep their registered
   verdict and point to the sigma row. Review 03's two minor findings were
   deferred to #623 and #624 (see "The parts of the Issue").
+- (2026-11-26, part 0) The circuit reads differently from the pilot, and
+  it moves during a session. F145's campaigns (27) and one diagnostic sweep
+  with the pilot's input put the -90 degree crossing at 48.5 to 50.2 kHz,
+  against the pilot's 47.0 kHz, moving by about 3 % in the first 45 minutes
+  after the AD3 is plugged in and by about 1 % after. The owner states the
+  parts and the circuit are unchanged. No cause is known. Consequences for
+  the plan: the registration discloses it and adds M0 and the wait; part 2
+  implements M0, the recorded plug-in time and room temperature, and the
+  report of M1 against M0; the precondition on the identity of the parts
+  may not be met, and its rule then scopes the conclusions to the circuit
+  of M1 to M5. The R-L node sweep was deliberately not repeated before the
+  freeze (it is M2). The campaigns of the physics lab record no device
+  conditions; F145 is to add them.
 - (2026-11-25, part 0) The owner's meter, a Mastech MAS830BC, has no
   specification table at hand; two published values of the MAS830B
   disagree (0.8 % and 1.2 % of reading, both + 3 digits). The session
