@@ -15,8 +15,8 @@
 # [session] outcome_code_pin. A change of this pin must also update its
 # time; the review of such a commit checks both.
 
-digest = "0aaa6bd2498d5a14971e07dc37a47219769e70a81e7ecaae5a340169a262e9bc"
-time = "2026-11-26T17:58:00+00:00"
+digest = "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801"
+time = "2026-11-26T18:33:00+00:00"
 
 [files]
 "ad3_rlc_pilot.py" = "eb3487ec66b9f20b8604f44a62fd2f678441e45e3a70cb3d5441858fd9590d0b"
@@ -28,7 +28,7 @@ time = "2026-11-26T17:58:00+00:00"
 "followup.py" = "e190ceec1d822cacc89e163bfba7cdb44a6ae843fb2d69c893c6f76ab715fc99"
 "graph.py" = "d57625adaf595ab350e769d6ca3864ff7ba1c9e452d7f2a74bea9b060b88c243"
 "log.py" = "75d2285c8a715dec57386351a8f2f8c43bcbcac574763bcbfc1130c706cb3400"
-"original.py" = "b5a73c956e85c1948ed2ee49e5fe6bd70e28250cec8d8450642a0579b1d3bc22"
+"original.py" = "bbedcfbf92602468075e05c3dbdd614a23ec8f19ce6d1d199cacece101077f0e"
 "project.py" = "774d8d158091ac735bb0e84687277d1bdf9ee5b7108dc2db977667d393481bbc"
 "questions.py" = "7eaceea6fa4853163a0b03b96acc4777fb2cc610bf42babd4e1b2ba2e7768b63"
 "registration.py" = "2623aba3005a64ff12984f10f090bbe47ae0972942536253cdfa668b765a4c81"

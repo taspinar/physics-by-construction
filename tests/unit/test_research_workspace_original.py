@@ -778,3 +778,12 @@ def test_the_command_line_runs_the_original_track(tmp_path):
     )
     assert completed.returncode == 0, completed.stderr
     assert (tmp_path / "p" / "view.html").is_file()
+
+
+def test_the_precondition_of_a_stopped_session_is_not_stated_as_none():
+    # Review 03 S1: a session that stops leaves the precondition uncomputed,
+    # and the claim said "None".
+    assert original.precondition_text(True) == "met"
+    assert original.precondition_text(False) == "not met"
+    assert "not evaluated" in original.precondition_text(None)
+    assert "None" not in original.precondition_text(None)

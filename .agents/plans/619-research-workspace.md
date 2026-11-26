@@ -966,6 +966,16 @@ After session F the owner states the licence of the readings and exports
 
 ## The page RR8
 
+**Excerpts of the original track (review round 3 of part 2, S2).** The
+modules that compute the follow-up's outcomes (`coil.py`, `followup.py`,
+`controls.py`, `original.py`) are pinned in
+`products/research-workspace/examples/coil-loss/outcome-code.toml`, and the
+pin's digest is recorded on the Issue at part 2's merge. Any edit of them
+after that, a `# region:` marker or a reformat included, changes the pin,
+and the workspace then reports the follow-up's outcomes as exploratory. The
+page takes its excerpts of these modules by object or by line range, which
+needs no edit; it adds no region markers to them.
+
 **Slot and place.** `RR8`, path `autonomous-research`, position 8, kind
 `product capstone`, unfilled (checked in `site/curriculum.yaml`, 2026-11-25).
 Strand `agents-llm` (ADR 022 decision 3); its order is the next free one

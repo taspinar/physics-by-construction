@@ -398,6 +398,14 @@ def _session_digests(session: Path) -> dict[str, str]:
 CONTROL_NAMES = tuple(controls.EXPECTED)
 
 
+def precondition_text(met: bool | None) -> str:
+    """The precondition in the words of a claim: met, not met, or, when a
+    session stopped before it was computed, not evaluated."""
+    if met is None:
+        return "not evaluated (the session stopped before it was computed)"
+    return "met" if met else "not met"
+
+
 def claims_of(pilot: dict, trial: dict, bounds: dict, follow: dict) -> list[Claim]:
     """The claims of the report, each with its run; the follow-up's claims
     rest on attempts that are missing until the bench session."""
@@ -443,7 +451,9 @@ def claims_of(pilot: dict, trial: dict, bounds: dict, follow: dict) -> list[Clai
         ("precondition", "the precondition (identity of the parts)"),
     ):
         value = (
-            outcome["precondition"] if key == "precondition" else outcome[key.lower()]
+            precondition_text(outcome["precondition"])
+            if key == "precondition"
+            else outcome[key.lower()]
         )
         if follow["status"] == followup.NOT_EVALUATED:
             text = f"{label}: not evaluated, the bench session is not made"
