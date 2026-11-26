@@ -1,0 +1,33 @@
+# The outcome code's identity pinned for the coil-loss follow-up (the
+# registration's "Withheld part"): the digest of every module that computes
+# an outcome or applies a rule (graph.outcome_code_digest, the modules of
+# graph.OUTCOME_MODULES with the stage code and the pilot's reader), the
+# digest of each of those files, and the time it was pinned (ISO 8601 with
+# the offset from UTC). It is part of part 2 and is merged into main before
+# M1. tests/unit/test_research_workspace_original.py fails while the code
+# differs from this pin, so a change of the outcome code changes this file
+# in the same commit, where it is reviewed. The workspace reports a session
+# evaluated by code other than this pin, or a pin later than the start of
+# M1, as a deviation, and its outcomes as exploratory.
+
+digest = "d93ab40bdb31ad1e759b54660a5eac09b307b6c38b3472fa6d71397f60396ae9"
+time = "2026-11-26T17:20:00+00:00"
+
+[files]
+"ad3_rlc_pilot.py" = "eb3487ec66b9f20b8604f44a62fd2f678441e45e3a70cb3d5441858fd9590d0b"
+"cobe_firas.py" = "9fefdf4ef2daf59388dc6296b2fc1393e13c24848f6692e74efa33f9118999bb"
+"coil.py" = "ef529f782a74ca479764bf82851a3467c1c4e2e4bbcdbca4cdc7f319aa731b71"
+"controls.py" = "d716b1c9bd127f38c302beb2345a1c26986498a93ffddd4f65499e16c44ff103"
+"discrepancy.py" = "36608fb5cb0ddfd7ca7069dfaf9fce8375666e3621d4cac5b897caabe33bd5c9"
+"firas.py" = "f5d44e12cbbb269563d166e90aa020d5295d3a92e622175591ef2b5dd629d9fb"
+"followup.py" = "c63bb27bfd2e43c7e85219fc384a27c0096a0f6e8efabfb3d06692df56aa112e"
+"graph.py" = "d57625adaf595ab350e769d6ca3864ff7ba1c9e452d7f2a74bea9b060b88c243"
+"log.py" = "75d2285c8a715dec57386351a8f2f8c43bcbcac574763bcbfc1130c706cb3400"
+"original.py" = "b5a73c956e85c1948ed2ee49e5fe6bd70e28250cec8d8450642a0579b1d3bc22"
+"project.py" = "774d8d158091ac735bb0e84687277d1bdf9ee5b7108dc2db977667d393481bbc"
+"questions.py" = "7eaceea6fa4853163a0b03b96acc4777fb2cc610bf42babd4e1b2ba2e7768b63"
+"registration.py" = "2623aba3005a64ff12984f10f090bbe47ae0972942536253cdfa668b765a4c81"
+"report.py" = "09b5a50a32bea6b3fe91981c86e8ddf924255a558fe4984fdaa65c487766fa80"
+"reproduction.py" = "2d62616f6103285271cb1675f60e719cb706cbd5259eb6f202c1fcea021343f5"
+"review.py" = "8af39d9439235724bf313b62f38a08f5aec9e8918e374c1d41c02e7e8adbeae7"
+"sources.py" = "d403b01ad601e7667fe85272d72fe081d690ed670807cbf2babbca8120a7844d"

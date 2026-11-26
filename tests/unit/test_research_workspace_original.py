@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tomllib
+from datetime import datetime
 
 import numpy as np
 import pytest
@@ -252,6 +253,10 @@ def test_the_templates_are_refused_until_filled_in(tmp_path):
     with pytest.raises(followup.SessionRefused) as refused:
         followup.load(directory)
     text = str(refused.value)
+    # The template names the readings file the reader expects (review 01 MIN3).
+    template = (EXAMPLE / "session-template.toml").read_text()
+    assert followup.READINGS in template and "readings.csv" not in template
+    assert "its own export folder" in template
     assert "session.plugged_in: no time" in text
     assert "room.temperature_c" in text
     assert "no export directory 'M0'" in text
@@ -362,6 +367,114 @@ def test_a_failed_run_is_repeated_once_and_a_second_failure_stops(tmp_path, nois
         followup.load(repeated, live=False)
 
 
+_ROOM = (
+    '[room]\ntemperature_c = 20.0\ntime = "2026-12-01T12:58:00+01:00"\n'
+    'instrument = "simulated"\n'
+)
+_PLUGGED = '[session]\nplugged_in = "2026-12-01T13:00:00+01:00"\n'
+
+
+@pytest.mark.parametrize(
+    ("edit", "words"),
+    [
+        (
+            lambda text: text.replace("attempt = 1", 'attempt = "two"', 1),
+            "sweep 1 attempt: 'two' is not a whole number",
+        ),
+        (
+            lambda text: text.replace("attempt = 1", "attempt = 1.5", 1),
+            "sweep 1 attempt: 1.5 is not a whole number",
+        ),
+        (lambda text: "room = 3\n" + text.replace(_ROOM, ""), "room: 3 is not a table"),
+        (
+            lambda text: 'session = "x"\n' + text.replace(_PLUGGED, ""),
+            "session: 'x' is not a table",
+        ),
+        (
+            lambda text: "sweep = [1, 2]\n" + text.split("[[sweep]]")[0],
+            "sweep 1: 1 is not a \\[\\[sweep\\]\\] table",
+        ),
+        (
+            lambda text: 'sweep = "M0"\n' + text.split("[[sweep]]")[0],
+            "sweep: 'M0' is not a list",
+        ),
+        (
+            lambda text: text.replace('directory = "M0"', "directory = 3", 1),
+            "sweep 1 directory: 3 is not a folder name",
+        ),
+        (
+            lambda text: text.replace('measurement = "M0"', "measurement = [1]", 1),
+            "unknown measurement \\[1\\]",
+        ),
+    ],
+)
+def test_a_malformed_session_file_is_refused_with_its_problem(
+    tmp_path, noise, edit, words
+):
+    """Review 01 MIN1: a value of the wrong type is a named refusal, never a
+    traceback."""
+    directory = _session(tmp_path, "DC", noise)
+    path = directory / followup.SESSION
+    text = path.read_text()
+    assert _ROOM in text and _PLUGGED in text
+    path.write_text(edit(text))
+    with pytest.raises(followup.SessionRefused, match=words):
+        followup.load(directory, live=False)
+
+
+def test_a_malformed_run_record_is_refused_with_its_problem(tmp_path, noise):
+    directory = _session(tmp_path, "DC", noise)
+    record = directory / "M1" / "run.json"
+    data = json.loads(record.read_text())
+    record.write_text(json.dumps({"run": "not a table"}))
+    with pytest.raises(followup.SessionRefused, match=r"M1.*not a run record"):
+        followup.load(directory, live=False)
+    data["run"]["configuration"] = 3
+    record.write_text(json.dumps(data))
+    with pytest.raises(
+        followup.SessionRefused, match="configuration: 3 is not a table"
+    ):
+        followup.load(directory, live=False)
+
+
+def test_a_failed_run_without_an_export_is_kept_with_its_reason(tmp_path, noise):
+    """Review 01 MIN1: a run that stopped before the physics lab wrote an
+    export is a failed attempt with its reason and no directory; a failed
+    attempt that names a missing directory is refused."""
+    directory = _session(tmp_path, "AC", noise)
+    path = directory / followup.SESSION
+    entry = (
+        '[[sweep]]\nmeasurement = "M2"\nattempt = 1\n'
+        'directory = "M2"\noutcome = "valid"'
+    )
+    text = path.read_text()
+    failed = (
+        '[[sweep]]\nmeasurement = "M2"\nattempt = 1\ndirectory = ""\n'
+        'outcome = "failed"\nreason = "the program stopped before the export"\n'
+    )
+    path.write_text(
+        text.replace(entry, failed + entry.replace("attempt = 1", "attempt = 2"))
+    )
+    result = followup.evaluate(directory, FREEZE, live=False)
+    assert result.status == followup.COMPUTED and result.outcome.g1 == coil.SHORT
+    m2 = [
+        s for s in followup.load(directory, live=False).sweeps if s.measurement == "M2"
+    ]
+    assert (m2[0].outcome, m2[0].directory, m2[0].started) == ("failed", "", "")
+    assert not [d for d in result.deviations if "M2" in d]
+
+    stopped = path.read_text().replace(
+        entry.replace("attempt = 1", "attempt = 2"),
+        failed.replace("attempt = 1", "attempt = 2"),
+    )
+    path.write_text(stopped)
+    assert followup.evaluate(directory, FREEZE, live=False).status == coil.INCONCLUSIVE
+
+    path.write_text(text.replace(entry, failed.replace('""', '"M2-lost"') + entry))
+    with pytest.raises(followup.SessionRefused, match="no export directory 'M2-lost'"):
+        followup.load(directory, live=False)
+
+
 def test_the_deviations_from_the_procedure_are_reported(tmp_path, noise):
     directory = _session(
         tmp_path,
@@ -468,6 +581,113 @@ def test_the_outcome_code_covers_the_original_tracks_rules(built, tmp_path):
     (copy / "run.json").write_text(json.dumps(run))
     problems = project.verify(copy)
     assert any("changed: coil.py" in p for p in problems)
+
+
+def test_the_outcome_code_is_the_pinned_identity_of_part_2():
+    """Review 01 M1: the outcome code is pinned for the follow-up. This test
+    fails while the code differs from the pin, so a change of an outcome
+    module changes ``outcome-code.toml`` in the same commit."""
+    pin = followup.load_pin(EXAMPLE / followup.CODE)
+    changed = sorted(
+        name
+        for name, digest in graph.outcome_file_digests().items()
+        if pin.files.get(name) != digest
+    )
+    assert changed == [], f"the outcome code differs from its pin: {changed}"
+    assert pin.files == graph.outcome_file_digests()
+    assert pin.digest == graph.outcome_code_digest()
+    # Pinned after the freeze; M1 is made after part 2 is merged.
+    assert datetime.fromisoformat(pin.time) >= datetime.fromisoformat(FREEZE.time)
+
+
+def _pin(**changes):
+    pin = followup.load_pin(EXAMPLE / followup.CODE)
+    return followup.CodePin(**{**pin.__dict__, **changes})
+
+
+def test_a_session_evaluated_by_other_code_is_a_deviation_and_exploratory(
+    tmp_path, noise
+):
+    directory = _session(tmp_path, "AC", noise)
+    same = followup.evaluate(directory, FREEZE, live=False, code=_pin())
+    assert same.exploratory == []
+    other = _pin(digest="0" * 64, files={**_pin().files, "coil.py": "0" * 64})
+    result = followup.evaluate(directory, FREEZE, live=False, code=other)
+    assert result.outcome.g1 == coil.SHORT  # computed, and exploratory
+    assert len(result.exploratory) == 1
+    assert "not the code pinned" in result.exploratory[0]
+    assert "changed: coil.py" in result.exploratory[0]
+    assert result.exploratory[0] in result.deviations
+    # A pin later than the start of M1: the code may have changed after M1.
+    late = followup.evaluate(
+        directory, FREEZE, live=False, code=_pin(time="2026-12-01T14:06:00+01:00")
+    )
+    assert len(late.exploratory) == 1 and "after M1 started" in late.exploratory[0]
+
+
+def test_a_project_evaluated_by_other_code_marks_its_outcomes_exploratory(
+    tmp_path, noise
+):
+    example = tmp_path / "example"
+    shutil.copytree(EXAMPLE, example)
+    controls.write_session(
+        example / original.SESSION_DIR, *controls.circuits()["AC"], 0, noise
+    )
+    _make_live(example / original.SESSION_DIR)
+    pin = example / followup.CODE
+    text = pin.read_text()
+    current = graph.outcome_file_digests()["coil.py"]
+    pin.write_text(
+        text.replace(graph.outcome_code_digest(), "0" * 64).replace(current, "1" * 64)
+    )
+    directory = tmp_path / "project"
+    project.run(example, directory)
+    assert project.verify(directory) == []
+    state = json.loads((directory / "states/followup.json").read_text())
+    assert state["outcome"]["g1"] == coil.SHORT and state["exploratory"]
+    claims = {c.id: c for c in project.summary(directory)["ledger"].claims}
+    assert "exploratory" in claims["G1"].text and "exploratory" in claims["G2"].text
+    log = worklog.load(directory / "log.json")
+    assert log.entries[1].content["decision"] == "not the pinned code"
+    assert worklog.state(log, "G1") != worklog.RESOLVED
+    report = (directory / "report.md").read_text()
+    assert "**Exploratory:**" in report and "supported (exploratory)" in report
+    assert "changed: coil.py" in report
+    assert "Exploratory:" in (directory / "view.html").read_text()
+    # The pin is an input: a change after the run is named.
+    copied = directory / "inputs" / followup.CODE
+    copied.write_text(copied.read_text() + "\n")
+    assert f"the input {followup.CODE} changed after the run" in project.verify(
+        directory
+    )
+
+
+def test_the_docstring_units_are_in_the_name_unit_form():
+    """Review 01 MIN2 (#564): a unit stated in a docstring of the track's
+    modules belongs to a named quantity, ``name`` (unit), the form part 3's
+    excerpts read (tests/support/site_checks.py ``_UNIT``)."""
+    import ast
+    import re
+
+    from support.site_checks import _UNIT
+
+    unit = re.compile(
+        r"\(((Hz|kHz|ohm|degrees|V|H|F|SI units)\b[^()]*)\)", re.MULTILINE
+    )
+    found = []
+    for name in ("coil", "controls", "followup", "original", "original_view"):
+        path = REPO_ROOT / f"src/pbc/products/research_workspace/{name}.py"
+        for node in ast.walk(ast.parse(path.read_text())):
+            if not isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                continue
+            doc = ast.get_docstring(node) or ""
+            named = {u for _, u in _UNIT.findall(doc)}
+            found += [
+                f"{name}.{node.name}: ({m.group(1)})"
+                for m in unit.finditer(doc)
+                if m.group(1) not in named
+            ]
+    assert found == []
 
 
 def test_the_view_is_static_and_the_agent_commands_are_refused(built, tmp_path):

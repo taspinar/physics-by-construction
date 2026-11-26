@@ -1147,9 +1147,18 @@ and a loss that depends on the frequency.
 
 **The outcome code's identity.** `coil.py`, `followup.py`, `controls.py`,
 `original.py`, and the pilot's reader that computes the phasors are in the
-digest of the outcome code (`graph.OUTCOME_MODULES`); the follow-up log
-records it in its second entry, after the freeze, so that a change after M1
-is named as a deviation.
+digest of the outcome code (`graph.OUTCOME_MODULES`). Its identity is
+pinned for the follow-up in
+`products/research-workspace/examples/coil-loss/outcome-code.toml` (the
+digest, each file's digest, and the time it was pinned), merged with part 2
+before M1; a unit test fails while the code differs from the pin, so a
+change of an outcome module changes the pin in the same reviewed commit.
+The follow-up log records the current identity and the pin in its second
+entry, after the freeze. A session evaluated by code other than the pin, or
+with a pin later than the start of M1, is reported as a deviation that
+names the changed files, and its outcomes are marked exploratory in the
+claims, the report, the view, and the log (which then resolves no
+finding).
 
 **What part 2 does not claim.** The follow-up's evidence is `not
 evaluated`: no measurement M0 to M5 has been made, and the bench session is

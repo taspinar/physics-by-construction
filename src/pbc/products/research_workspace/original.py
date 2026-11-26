@@ -5,7 +5,8 @@ without a model account.
 Layout of a project directory of this track::
 
     inputs/            questions.toml, registration.toml, registration.md,
-                       freeze.toml (copied), session/ (the bench session, if any)
+                       freeze.toml, outcome-code.toml (copied), session/ (the
+                       bench session, if any)
     states/            pilot.json, controls.json, boundaries.json, followup.json
     ledger.json        the evidence ledger (pbc.evidence.records)
     archive.json       the question archive; assessments.json
@@ -23,6 +24,9 @@ workspace's checks. The pilot's analysis is exploratory (its data chose the
 thresholds). The positive controls are simulated. The follow-up's evidence is
 ``not evaluated`` until the owner's session is in ``inputs/session``; then it
 is admitted only when measured after the freeze, and computed by the rules.
+The outcome code's identity is pinned for the follow-up
+(``outcome-code.toml``): a session evaluated by other code, or a pin later
+than M1, is a deviation, and its outcomes are exploratory.
 """
 
 import json
@@ -58,7 +62,13 @@ from pbc.products.research_workspace import report as rep
 from pbc.research.ideas import Entry, Idea, verify_archive
 
 TRACK = "original"
-INPUTS = ("questions.toml", "registration.toml", "registration.md", "freeze.toml")
+INPUTS = (
+    "questions.toml",
+    "registration.toml",
+    "registration.md",
+    "freeze.toml",
+    followup.CODE,
+)
 SESSION_DIR = "session"
 PILOT_FILES = tuple(
     f"data/samples/ad3-rlc-pilot/{sweep}/{name}"
@@ -218,7 +228,11 @@ def run(example: Path, directory: Path) -> Path:
 
     session = inputs / SESSION_DIR if (inputs / SESSION_DIR).is_dir() else None
     try:
-        result = followup.evaluate(session, freeze)
+        pin = followup.load_pin(inputs / followup.CODE)
+    except followup.SessionRefused as reason:
+        raise OriginalRefused(f"the outcome code's pin is refused: {reason}") from None
+    try:
+        result = followup.evaluate(session, freeze, code=pin)
     except followup.SessionRefused as reason:
         raise OriginalRefused(f"the bench session is refused: {reason}") from reason
 
@@ -271,6 +285,7 @@ def run(example: Path, directory: Path) -> Path:
         "outcome": result.outcome.as_dict(),
         "reasons": result.reasons,
         "deviations": result.deviations,
+        "exploratory": result.exploratory,
         "records": result.records,
     }
     _write_json(states / "followup.json", _rounded(followup_state))
@@ -306,10 +321,12 @@ def run(example: Path, directory: Path) -> Path:
         "a change of the text between the markers is a new registration",
         "the owner (the merge)",
     )
+    current = graph.outcome_code_digest()
     log.decide(
         "outcome-code",
-        "recorded",
-        f"the identity of the outcome code: {graph.outcome_code_digest()}",
+        "the pinned code" if current == pin.digest else "not the pinned code",
+        f"the identity of the outcome code: {current}; pinned for the follow-up"
+        f" at {pin.time}: {pin.digest}",
         "a change of this code after M1 is a deviation, and its result exploratory",
         "the workspace (this run)",
     )
@@ -324,11 +341,15 @@ def run(example: Path, directory: Path) -> Path:
         if result.status != followup.NOT_EVALUATED:
             outcome = getattr(result.outcome, key.lower())
             decided = (
-                None if outcome in (coil.INCONCLUSIVE, coil.NOT_EVALUATED) else True
+                None
+                if outcome in (coil.INCONCLUSIVE, coil.NOT_EVALUATED)
+                or result.exploratory
+                else True
             )
             log.evidence(
                 key,
-                f"rule {key}: {outcome}",
+                f"rule {key}: {outcome}"
+                + (", exploratory (not the pinned code)" if result.exploratory else ""),
                 decided,
                 digest_file(states / "followup.json"),
             )
@@ -355,6 +376,7 @@ def run(example: Path, directory: Path) -> Path:
             "sample": {path: digest_file(REPO_ROOT / path) for path in PILOT_FILES},
             "modes": MODES,
             "outcome_code": graph.outcome_code_digest(),
+            "outcome_code_pinned": pin.digest,
             "outcome_files": graph.outcome_file_digests(),
             "followup": result.status,
         },
@@ -425,6 +447,11 @@ def claims_of(pilot: dict, trial: dict, bounds: dict, follow: dict) -> list[Clai
         )
         if follow["status"] == followup.NOT_EVALUATED:
             text = f"{label}: not evaluated, the bench session is not made"
+        elif follow.get("exploratory"):
+            text = (
+                f"{label}: {value}, exploratory: the outcome code is not the"
+                " code pinned for the follow-up"
+            )
         else:
             text = f"{label}: {value}"
         out.append(Claim(key, text, SCOPE, {FOLLOWUP[key]: True}))
@@ -641,6 +668,8 @@ def render_markdown(data: dict) -> tuple[str, list]:
             verdict = "undecided"
         else:
             verdict = "not supported"
+        if got != coil.NOT_EVALUATED and follow.get("exploratory"):
+            verdict += " (exploratory)"
         lines.append(_row(name, rule, predicted, verdict, status[rule]))
     lines += [
         "",
@@ -761,6 +790,14 @@ def render_markdown(data: dict) -> tuple[str, list]:
         ]
     else:
         lines += [f"Status: {follow['status']}.", ""]
+        if follow.get("exploratory"):
+            lines += [
+                "**Exploratory:** the outcome code that evaluated this session"
+                " is not the code pinned for the follow-up, or was pinned after"
+                " M1; the outcomes below confirm nothing (the registration's"
+                " withheld part).",
+                "",
+            ]
         lines += [f"- {r}" for r in follow["reasons"]]
         lines += [f"- Deviation: {d}" for d in follow["deviations"]]
         lines += [f"- {n}" for n in outcome["notes"]]

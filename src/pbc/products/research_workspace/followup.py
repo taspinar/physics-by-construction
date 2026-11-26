@@ -16,7 +16,11 @@ from the templates in ``products/research-workspace/examples/coil-loss/``:
 every sweep of M0 to M3 and M5, the time of every reading of M4) precedes the
 freeze. ``evaluate`` applies the registration (``coil.evaluate``) and reports
 the deviations from its procedure (the wait of 45 minutes, the order of the
-measurements), which change no rule. Without a session every outcome is
+measurements), which change no rule. The outcome code's identity is pinned
+for the follow-up (``outcome-code.toml``, ``CodePin``): when the code that
+evaluates a session is not the pinned code, or the pin is later than M1, the
+change is a deviation and the outcomes are exploratory (the registration's
+"Withheld part"). Without a session every outcome is
 ``not evaluated``; after a second failed run of one measurement the session
 stops and the follow-up is ``inconclusive`` with its reasons.
 """
@@ -29,10 +33,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from pbc.products.research_workspace import coil, registration
+from pbc.products.research_workspace import coil, graph, registration
 
 SESSION = "session.toml"
 READINGS = "readings.toml"
+CODE = "outcome-code.toml"
 SWEEPS = ("M0", "M1", "M2", "M3", "M5")
 REQUIRED_SWEEPS = ("M0", "M1", "M2", "M3")
 VALID, FAILED = "valid", "failed"
@@ -110,6 +115,73 @@ class Result:
     reasons: list[str] = field(default_factory=list)
     deviations: list[str] = field(default_factory=list)
     records: dict = field(default_factory=dict)
+    # Why the outcomes are exploratory (the outcome code is not the pinned
+    # code); empty when they are confirmatory.
+    exploratory: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class CodePin:
+    """The outcome code's identity fixed for the follow-up before M1: the
+    digest of ``graph.outcome_code_digest``, the digest of each of its files,
+    and the time it was pinned (ISO 8601 with its offset)."""
+
+    digest: str
+    time: str
+    files: dict
+
+
+def load_pin(path: Path) -> CodePin:
+    """The pin in ``path``; a malformed pin is refused."""
+    path = Path(path)
+    problems: list[str] = []
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        raise SessionRefused(f"{path.name}: {error}") from error
+    digest = data.get("digest")
+    if not isinstance(digest, str) or len(digest) != 64:
+        problems.append(f"{path.name} digest: {digest!r} is not a sha256")
+    _time(data.get("time"), f"{path.name} time", problems)
+    files = _table(data.get("files"), f"{path.name} files", problems)
+    if not files:
+        problems.append(f"{path.name}: no [files]")
+    if problems:
+        raise SessionRefused("; ".join(problems))
+    return CodePin(digest, data["time"], dict(files))
+
+
+def code_deviations(
+    session: Session, pin: CodePin, digest: str, files: dict
+) -> list[str]:
+    """The outcome code against its pin: a code other than the pinned one
+    (named by file), and a pin later than the start of M1, are each a
+    deviation that makes the outcomes exploratory."""
+    found = []
+    if digest != pin.digest:
+        changed = sorted(
+            name
+            for name in pin.files.keys() | files.keys()
+            if pin.files.get(name) != files.get(name)
+        )
+        found.append(
+            f"the outcome code {digest[:16]} is not the code pinned for the"
+            f" follow-up ({pin.digest[:16]}, {pin.time}; changed:"
+            f" {', '.join(changed) or 'not named by file'}): its outcomes are"
+            " exploratory"
+        )
+    starts = [
+        datetime.fromisoformat(s.started)
+        for s in session.sweeps
+        if s.measurement == "M1" and s.started
+    ]
+    if starts and datetime.fromisoformat(pin.time) > min(starts):
+        found.append(
+            f"the outcome code was pinned at {pin.time}, after M1 started at"
+            f" {min(starts).isoformat()}: the code may have changed after M1,"
+            " and its outcomes are exploratory"
+        )
+    return found
 
 
 def _time(text, where: str, problems: list[str]) -> datetime | None:
@@ -176,6 +248,8 @@ def read_readings(path: Path, problems: list[str]) -> list[coil.Reading]:
                 f" {coil.METER}"
             )
         number = _number(cell["reading"], f"{where} reading", problems)
+        if number is not None and number != int(number):
+            problems.append(f"{where} reading: {number:g} is not a whole number")
         range_ohm = _number(cell["range_ohm"], f"{where} range_ohm", problems)
         q = _number(cell["resolution_ohm"], f"{where} resolution_ohm", problems)
         p = _number(cell["p_percent"], f"{where} p_percent", problems)
@@ -221,6 +295,25 @@ def read_readings(path: Path, problems: list[str]) -> list[coil.Reading]:
     return out
 
 
+def _table(value, where: str, problems: list[str]) -> dict:
+    """``value`` when it is a table; otherwise the problem is named and an
+    empty table stands in, so that every other problem is named too."""
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        problems.append(f"{where}: {value!r} is not a table")
+        return {}
+    return value
+
+
+def _integer(value, where: str, problems: list[str]) -> int | None:
+    """A whole number written as one (``2``, not ``"two"`` or ``2.5``)."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        problems.append(f"{where}: {value!r} is not a whole number")
+        return None
+    return value
+
+
 def _sweep_record(
     directory: Path, where: str, outcome: str, live: bool, problems: list[str]
 ) -> tuple[str, dict]:
@@ -232,13 +325,15 @@ def _sweep_record(
         record = json.loads(path.read_text(encoding="utf-8"))
         run = record["run"]
     except ValueError, KeyError, TypeError:
+        run = None
+    if not isinstance(run, dict):
         problems.append(f"{where}: {path.name} is not a run record of the physics lab")
         return "", {}
     started = run.get("started", "")
     _time(started, f"{where} started", problems)
     if outcome == FAILED:
         return started, run
-    configuration = run.get("configuration") or {}
+    configuration = _table(run.get("configuration"), f"{where} configuration", problems)
     for key, expected in INPUT.items():
         if configuration.get(key) != expected:
             problems.append(
@@ -248,7 +343,8 @@ def _sweep_record(
     if live:
         if run.get("mode") != "live":
             problems.append(f"{where}: mode {run.get('mode')!r}, not live")
-        calibration = (run.get("device") or {}).get("calibration", "")
+        device = _table(run.get("device"), f"{where} device", problems)
+        calibration = str(device.get("calibration", ""))
         for words in RANGES_IN_RECORD:
             if words not in calibration:
                 problems.append(f"{where}: the run record does not state the {words}")
@@ -263,7 +359,12 @@ def _sweep_record(
 def load(directory: Path, *, live: bool = True) -> Session:
     """The session in ``directory``; every problem is named in one refusal.
     ``live`` is False only for the simulated sessions of the positive
-    controls, whose run records carry no device and no conditions."""
+    controls, whose run records carry no device and no conditions.
+
+    A failed attempt may have no export (a run that stopped before the
+    physics lab wrote one): its ``directory`` is empty and its reason says
+    why; it has no time and decides nothing. A valid attempt always has its
+    export, and a failed one that names a directory must have it."""
     directory = Path(directory)
     problems: list[str] = []
     path = directory / SESSION
@@ -273,8 +374,8 @@ def load(directory: Path, *, live: bool = True) -> Session:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as error:
         raise SessionRefused(f"{SESSION}: {error}") from error
-    session = data.get("session") or {}
-    room = data.get("room") or {}
+    session = _table(data.get("session"), f"{SESSION} session", problems)
+    room = _table(data.get("room"), f"{SESSION} room", problems)
     _time(session.get("plugged_in"), f"{SESSION} session.plugged_in", problems)
     temperature = _number(
         room.get("temperature_c"), f"{SESSION} room.temperature_c", problems
@@ -283,38 +384,47 @@ def load(directory: Path, *, live: bool = True) -> Session:
     instrument = room.get("instrument", "")
     if not isinstance(instrument, str) or not instrument.strip():
         problems.append(f"{SESSION} room.instrument: not named")
+    entries = data.get("sweep") or []
+    if not isinstance(entries, list):
+        problems.append(f"{SESSION} sweep: {entries!r} is not a list of [[sweep]]")
+        entries = []
     sweeps = []
-    for number, entry in enumerate(data.get("sweep") or [], start=1):
+    for number, entry in enumerate(entries, start=1):
         where = f"{SESSION} sweep {number}"
+        if not isinstance(entry, dict):
+            problems.append(f"{where}: {entry!r} is not a [[sweep]] table")
+            continue
         measurement = entry.get("measurement")
-        if measurement not in SWEEPS:
+        if not isinstance(measurement, str) or measurement not in SWEEPS:
             problems.append(f"{where}: unknown measurement {measurement!r}")
             continue
+        attempt = _integer(entry.get("attempt"), f"{where} attempt", problems)
         outcome = entry.get("outcome")
-        if outcome not in (VALID, FAILED):
+        if not isinstance(outcome, str) or outcome not in (VALID, FAILED):
             problems.append(f"{where}: outcome {outcome!r}, not valid or failed")
             continue
-        reason = str(entry.get("reason", ""))
+        reason = entry.get("reason", "")
+        if not isinstance(reason, str):
+            problems.append(f"{where} reason: {reason!r} is not text")
+            reason = ""
         if outcome == FAILED and not reason.strip():
             problems.append(f"{where}: a failed run needs its reason")
-        name = str(entry.get("directory", ""))
-        if not name or not (directory / name).is_dir():
+        name = entry.get("directory", "")
+        if not isinstance(name, str):
+            problems.append(f"{where} directory: {name!r} is not a folder name")
+            continue
+        if outcome == FAILED and not name:
+            started, run = "", {}
+        elif not name or not (directory / name).is_dir():
             problems.append(f"{where}: no export directory {name!r}")
             continue
-        started, run = _sweep_record(
-            directory / name, f"{where} ({measurement})", outcome, live, problems
-        )
-        sweeps.append(
-            Sweep(
-                measurement,
-                int(entry.get("attempt", 0)),
-                name,
-                outcome,
-                reason,
-                started,
-                run,
+        else:
+            started, run = _sweep_record(
+                directory / name, f"{where} ({measurement})", outcome, live, problems
             )
-        )
+        if attempt is None:
+            continue
+        sweeps.append(Sweep(measurement, attempt, name, outcome, reason, started, run))
     for measurement in SWEEPS:
         attempts = [s for s in sweeps if s.measurement == measurement]
         if [s.attempt for s in attempts] != list(range(1, len(attempts) + 1)):
@@ -343,8 +453,13 @@ def load(directory: Path, *, live: bool = True) -> Session:
 
 
 def measurement_times(session: Session) -> list[tuple[str, str]]:
-    """Every measurement time of M0 to M5: (what, time)."""
-    out = [(f"{s.measurement} attempt {s.attempt}", s.started) for s in session.sweeps]
+    """Every measurement time of M0 to M5: (what, time). A failed attempt
+    without an export has no time."""
+    out = [
+        (f"{s.measurement} attempt {s.attempt}", s.started)
+        for s in session.sweeps
+        if s.started
+    ]
     out += [(f"M4 {r.quantity} reading {r.number}", r.time) for r in session.readings]
     return out
 
@@ -369,7 +484,7 @@ def deviations(session: Session) -> list[str]:
     found = []
     plugged = datetime.fromisoformat(session.plugged_in)
     first = session.used("M0") or next(
-        (s for s in session.sweeps if s.measurement == "M0"), None
+        (s for s in session.sweeps if s.measurement == "M0" and s.started), None
     )
     if first is not None:
         start = datetime.fromisoformat(first.started)
@@ -384,7 +499,7 @@ def deviations(session: Session) -> list[str]:
         order += [
             (measurement, datetime.fromisoformat(s.started))
             for s in session.sweeps
-            if s.measurement == measurement
+            if s.measurement == measurement and s.started
         ]
     readings = {
         q: [datetime.fromisoformat(r.time) for r in session.readings if r.quantity == q]
@@ -395,7 +510,7 @@ def deviations(session: Session) -> list[str]:
     order += [
         ("M5", datetime.fromisoformat(s.started))
         for s in session.sweeps
-        if s.measurement == "M5"
+        if s.measurement == "M5" and s.started
     ]
     for (a, ta), (b, tb) in itertools.pairwise(order):
         if tb < ta:
@@ -438,10 +553,13 @@ def evaluate(
     *,
     live: bool = True,
     pilot=None,
+    code: CodePin | None = None,
 ) -> Result:
     """The follow-up's outcomes from the session in ``directory`` (None: no
     session, every outcome ``not evaluated``). A malformed session or one
-    measured before the freeze is refused (``SessionRefused``)."""
+    measured before the freeze is refused (``SessionRefused``). With
+    ``code``, the outcome code is compared with its pin (``code_deviations``);
+    the simulated controls pass none."""
     if directory is None or not Path(directory).exists():
         return Result(
             NOT_EVALUATED,
@@ -451,6 +569,11 @@ def evaluate(
     admit(session, freeze)
     result = Result(COMPUTED, records=records_of(session))
     result.deviations = deviations(session)
+    if code is not None:
+        result.exploratory = code_deviations(
+            session, code, graph.outcome_code_digest(), graph.outcome_file_digests()
+        )
+        result.deviations += result.exploratory
     stopped = [
         m
         for m in SWEEPS

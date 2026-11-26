@@ -166,7 +166,10 @@ writes the same exports as the reproduction: `report.md`, `view.html`,
   the meter model on constructed readings.
 - **The follow-up.** `not evaluated` until the bench session: G1, G2, and
   the precondition are claims on missing runs. The follow-up log begins
-  with the freeze and the identity of the outcome code.
+  with the freeze and the identity of the outcome code, beside the identity
+  pinned for the follow-up in `examples/coil-loss/outcome-code.toml`. A
+  session evaluated by other code, or with a pin later than M1, is a
+  deviation, and its outcomes are marked exploratory.
 
 **The bench session** is the owner's, after part 2 is merged into `main`.
 Its records go in a folder `session/` beside the example's inputs:
@@ -180,8 +183,10 @@ range, resolution, or specification other than the registered ones, a run
 record without the live input and the device's conditions, a valid sweep
 repeated, and any measurement made before the freeze. It reports, without
 changing any rule, a wait shorter than 45 minutes and a measurement out of
-its registered order. A run that failed twice stops the session; the
-follow-up is then `inconclusive` with its reasons.
+its registered order. Each attempt has its own export folder; a failed run
+that stopped before the physics lab wrote an export is recorded with an
+empty `directory` and its reason. A run that failed twice stops the
+session; the follow-up is then `inconclusive` with its reasons.
 
 ## The routes
 
@@ -232,8 +237,9 @@ follow-up is then `inconclusive` with its reasons.
   `registration.md` (the frozen registration), `freeze.toml` (its digest,
   commit, and time), `registration.toml` (the same registration as the
   workspace's data: five explanations, each with the outcome it predicts),
-  `questions.toml` (the questions considered), and the two templates of the
-  bench session.
+  `questions.toml` (the questions considered), `outcome-code.toml` (the
+  outcome code's identity pinned for the follow-up), and the two templates
+  of the bench session.
 - `fixtures/`: the replay fixture of the agent reviewer (a placeholder).
 
 Data: NASA COBE FIRAS / LAMBDA; Fixsen et al. 1996, ApJ 473, 576. We

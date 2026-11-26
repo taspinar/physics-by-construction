@@ -134,6 +134,8 @@ def render(data: dict, *, figure: bool = True) -> str:
     rows = []
     for name, (rule, predicted) in coil.EXPLANATIONS.items():
         got = outcome[rule.lower()]
+        if got != coil.NOT_EVALUATED and follow.get("exploratory"):
+            got += " (exploratory)"
         rows.append([name, rule, predicted, got, _status(status[rule])])
     parts.append(
         "<section aria-labelledby='map'><h2 id='map'>The evidence map</h2>"
@@ -247,8 +249,15 @@ def render(data: dict, *, figure: bool = True) -> str:
             + [f"Deviation: {d}" for d in follow["deviations"]]
             + outcome["notes"]
         )
+        exploratory = (
+            "<p><strong>Exploratory:</strong> the outcome code that evaluated"
+            " this session is not the code pinned for the follow-up, or was"
+            " pinned after M1; these outcomes confirm nothing.</p>"
+            if follow.get("exploratory")
+            else ""
+        )
         follow_text = (
-            f"<p>Status: {_e(follow['status'])}.</p><ul>"
+            f"<p>Status: {_e(follow['status'])}.</p>{exploratory}<ul>"
             + "".join(f"<li>{_e(i)}</li>" for i in items)
             + "</ul>"
             + _table(

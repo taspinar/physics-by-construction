@@ -1,7 +1,8 @@
 # The records of the bench session of the coil-loss follow-up (the
 # registration of Issue #619). Copy this file to session.toml in a new
-# folder, beside readings.csv and the physics lab's export of every sweep
-# (its --out folder, with raw.csv and run.json), and fill in every field.
+# folder, beside readings.toml (copied from readings-template.toml) and the
+# physics lab's export of every sweep (its --out folder, with raw.csv and
+# run.json), and fill in every field.
 # Times: ISO 8601 with the offset from UTC, e.g. 2026-12-03T13:10:00+01:00.
 # No rule reads the plug-in time, the room, or the device's conditions
 # (which the physics lab writes into each run.json); they are reported.
@@ -18,7 +19,10 @@ instrument = ""         # the thermometer read
 # One [[sweep]] per run, in the order made: M0, M1, M2, M3, then M5 after M4.
 # A failed run (an invalid capture, a refused output) is repeated once and
 # both are kept: write the failed one with outcome = "failed" and its reason,
-# then the repeat with attempt = 2. A second failure stops the session.
+# then the repeat with attempt = 2. Each attempt has its own export folder
+# (for example M2 for the failed run and M2-repeat for its repeat); a failed
+# run that stopped before the physics lab wrote an export has none: write
+# directory = "" and say so in its reason. A second failure stops the session.
 
 [[sweep]]
 measurement = "M0"      # conditioning sweep: scope 1+ at W1, 2+ at node A

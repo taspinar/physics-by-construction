@@ -19,7 +19,8 @@ Every quantity and every rule here is the registration's, in its words:
 The thresholds were chosen after seeing the pilot's data; only the follow-up's
 measurements are confirmatory. A change of this module after M1 is a
 deviation, and its result exploratory (the registration's "Withheld part"):
-``graph.outcome_code_digest`` covers it.
+``graph.outcome_code_digest`` covers it, and ``followup.code_deviations``
+compares it with the identity pinned in ``examples/coil-loss/outcome-code.toml``.
 """
 
 import math
@@ -99,7 +100,7 @@ class AnalysisRefused(ValueError):
 
 
 def coarse_frequencies() -> np.ndarray:
-    """The 13 log-spaced coarse frequencies of the live input (Hz)."""
+    """The 13 log-spaced coarse frequencies of the live input, ``return`` (Hz)."""
     k = np.arange(COARSE_POINTS)
     return LOW_HZ * (HIGH_HZ / LOW_HZ) ** (k / (COARSE_POINTS - 1))
 
@@ -142,7 +143,7 @@ def divided(response: Response, m: np.ndarray) -> Response:
 
 
 def wrap_deg(angle: np.ndarray) -> np.ndarray:
-    """An angle in degrees in (-180, 180]."""
+    """``angle`` (degrees) wrapped into (-180, 180], ``return`` (degrees)."""
     out = np.mod(np.asarray(angle, dtype=float) + 180.0, 360.0) - 180.0
     return np.where(out == -180.0, 180.0, out)
 
@@ -167,8 +168,9 @@ class Reading:
 
 @dataclass(frozen=True)
 class MeterValue:
-    """A net meter value X = mean(x) - z with its standard uncertainty and
-    the parts it combines (ohm)."""
+    """A net meter value X = mean(x) - z, ``value`` (ohm), with its
+    standard uncertainty ``u`` (ohm), ``u_ng`` (ohm) without the gain part,
+    and the ``parts`` (ohm) it combines."""
 
     quantity: str
     value: float
@@ -273,14 +275,17 @@ def resistor_band(
 
 
 def impedance(response: Response, resistance: float) -> np.ndarray:
-    """``Z = R H / (1 - H)`` (ohm, complex)."""
+    """The impedance Z = R H / (1 - H) of the R-L node, ``return``
+    (ohm, complex), with the series resistance ``resistance`` (ohm)."""
     h = response.ratio
     return resistance * h / (1.0 - h)
 
 
 @dataclass(frozen=True)
 class Parts:
-    """L and C from the reactance, R_L(f), R_L0 and u_L (SI units, ohm)."""
+    """L and C from the reactance, ``inductance_h`` (H) and
+    ``capacitance_f`` (F); R_L at the coarse frequencies, ``loss_ohm`` (ohm);
+    ``r_l0`` (ohm) and ``u_l`` (ohm)."""
 
     inductance_h: float
     capacitance_f: float
@@ -320,7 +325,8 @@ def model_ratio(frequency_hz: np.ndarray, resistance: float, p: Parts) -> np.nda
 
 def phase_rms(capacitor: Response, resistance: float, p: Parts) -> float:
     """P: the rms over the coarse frequencies of the model's phase minus the
-    phase of the capacitor sweep (degrees)."""
+    phase of the capacitor sweep, ``return`` (degrees), with the series
+    resistance ``resistance`` (ohm)."""
     model = model_ratio(capacitor.frequency_hz, resistance, p)
     difference = wrap_deg(np.degrees(np.angle(model) - np.angle(capacitor.ratio)))
     return float(np.sqrt(np.mean(difference**2)))

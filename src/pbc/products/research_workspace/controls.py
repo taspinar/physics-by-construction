@@ -90,9 +90,9 @@ class Channels:
 
 
 def noise_levels() -> tuple[float, float]:
-    """The noise (V, one standard deviation) of channel 1 and channel 2 that
-    the pilot's phasor fits leave: the median over the points of the R-L node
-    sweep of the residual scatter of each fit."""
+    """The noise of channel 1 and channel 2 that the pilot's phasor fits
+    leave, ``return`` (V, one standard deviation each): the median over the
+    points of the R-L node sweep of the residual scatter of each fit."""
     from pbc.data import SAMPLES_DIR
     from pbc.data.reference.ad3_rlc_pilot import read_traces
 
