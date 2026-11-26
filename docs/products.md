@@ -1158,7 +1158,13 @@ entry, after the freeze. A session evaluated by code other than the pin, or
 with a pin later than the start of M1, is reported as a deviation that
 names the changed files, and its outcomes are marked exploratory in the
 claims, the report, the view, and the log (which then resolves no
-finding).
+finding). The reference for a session is the pin's digest that the
+supervisor records on Issue #619 after part 2's merge (a GitHub comment,
+time-stamped by GitHub): the session records it as
+`[session] outcome_code_pin`, and a pin that differs from it is a deviation
+too ("the pin changed after the session recorded it"), even when the code
+equals the changed pin and its time was left as it was. A change of the pin
+must also update its time, and the review of such a commit checks both.
 
 **What part 2 does not claim.** The follow-up's evidence is `not
 evaluated`: no measurement M0 to M5 has been made, and the bench session is

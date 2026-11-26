@@ -258,6 +258,7 @@ def test_the_templates_are_refused_until_filled_in(tmp_path):
     assert followup.READINGS in template and "readings.csv" not in template
     assert "its own export folder" in template
     assert "session.plugged_in: no time" in text
+    assert "session.outcome_code_pin: '' is not the 64 hexadecimal digits" in text
     assert "room.temperature_c" in text
     assert "no export directory 'M0'" in text
     assert "value_ohm: '' is not a number" in text
@@ -475,6 +476,26 @@ def test_a_failed_run_without_an_export_is_kept_with_its_reason(tmp_path, noise)
         followup.load(directory, live=False)
 
 
+def test_an_early_failed_m0_attempt_is_a_deviation(tmp_path, noise):
+    """Review 02 S1: the wait is checked on the earliest started attempt of
+    M0, failed or valid, not only on the valid repeat."""
+    directory = _session(tmp_path, "DC", noise)
+    _add_attempts(directory, "M0", ["failed", "valid"])
+    path = directory / "M0-1" / "run.json"
+    record = json.loads(path.read_text())
+    record["run"]["started"] = "2026-12-01T13:20:00+01:00"
+    path.write_text(json.dumps(record))
+    result = followup.evaluate(directory, FREEZE, live=False)
+    assert "M0 started 20 minutes after the plug-in" in " ".join(result.deviations)
+    # The valid repeat alone started 60 minutes after: no deviation.
+    assert not any(
+        "after the plug-in" in d
+        for d in followup.evaluate(
+            _session(tmp_path / "b", "DC", noise), FREEZE, live=False
+        ).deviations
+    )
+
+
 def test_the_deviations_from_the_procedure_are_reported(tmp_path, noise):
     directory = _session(
         tmp_path,
@@ -614,15 +635,54 @@ def test_a_session_evaluated_by_other_code_is_a_deviation_and_exploratory(
     other = _pin(digest="0" * 64, files={**_pin().files, "coil.py": "0" * 64})
     result = followup.evaluate(directory, FREEZE, live=False, code=other)
     assert result.outcome.g1 == coil.SHORT  # computed, and exploratory
+    # The code differs from the pin, and the pin from the session's record.
+    assert len(result.exploratory) == 2
+    assert "the pin changed after the session recorded it" in result.exploratory[0]
+    assert "not the code pinned" in result.exploratory[1]
+    assert "changed: coil.py" in result.exploratory[1]
+    assert result.exploratory[1] in result.deviations
+    recorded = _session(tmp_path / "recorded", "AC", noise, pin="0" * 64)
+    result = followup.evaluate(recorded, FREEZE, live=False, code=other)
     assert len(result.exploratory) == 1
     assert "not the code pinned" in result.exploratory[0]
-    assert "changed: coil.py" in result.exploratory[0]
-    assert result.exploratory[0] in result.deviations
     # A pin later than the start of M1: the code may have changed after M1.
     late = followup.evaluate(
         directory, FREEZE, live=False, code=_pin(time="2026-12-01T14:06:00+01:00")
     )
     assert len(late.exploratory) == 1 and "after M1 started" in late.exploratory[0]
+
+
+def test_a_pin_changed_after_the_session_recorded_it_is_a_deviation(tmp_path, noise):
+    """Review 02 MIN1 (#635): the code is changed after M1, and the commit
+    updates the pin's digest and files but leaves its time. The code equals
+    the (changed) pin, the pin's time precedes M1; the session's recorded
+    pin, the digest recorded on the Issue at part 2's merge, still differs."""
+    recorded = "a" * 64
+    directory = _session(tmp_path, "AC", noise, pin=recorded)
+    pin = _pin()  # equal to the current code, its time left as it was
+    assert pin.digest == graph.outcome_code_digest() != recorded
+    result = followup.evaluate(directory, FREEZE, live=False, code=pin)
+    assert result.outcome.g1 == coil.SHORT  # computed, and exploratory
+    assert len(result.exploratory) == 1
+    assert "the pin changed after the session recorded it" in result.exploratory[0]
+    assert recorded[:16] in result.exploratory[0]
+    assert result.exploratory[0] in result.deviations
+
+
+@pytest.mark.parametrize("value", [None, "", "abc", "A" * 64, "g" * 64, 7])
+def test_a_session_without_its_recorded_pin_is_refused(tmp_path, noise, value):
+    directory = _session(tmp_path, "AC", noise)
+    path = directory / followup.SESSION
+    lines = [
+        line
+        for line in path.read_text().splitlines()
+        if not line.startswith("outcome_code_pin")
+    ]
+    if value is not None:
+        lines.insert(2, f"outcome_code_pin = {json.dumps(value)}")
+    path.write_text("\n".join(lines) + "\n")
+    with pytest.raises(followup.SessionRefused, match=r"session\.outcome_code_pin"):
+        followup.load(directory, live=False)
 
 
 def test_a_project_evaluated_by_other_code_marks_its_outcomes_exploratory(

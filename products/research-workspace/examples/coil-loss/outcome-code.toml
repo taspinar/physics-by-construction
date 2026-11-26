@@ -7,20 +7,25 @@
 # M1. tests/unit/test_research_workspace_original.py fails while the code
 # differs from this pin, so a change of the outcome code changes this file
 # in the same commit, where it is reviewed. The workspace reports a session
-# evaluated by code other than this pin, or a pin later than the start of
-# M1, as a deviation, and its outcomes as exploratory.
+# evaluated by code other than this pin, a pin later than the start of M1,
+# or a pin other than the one the session recorded, as a deviation, and its
+# outcomes as exploratory. The reference is this file's digest as the
+# supervisor records it on Issue #619 after part 2's merge (a GitHub
+# comment, time-stamped by GitHub); the session copies it into
+# [session] outcome_code_pin. A change of this pin must also update its
+# time; the review of such a commit checks both.
 
-digest = "d93ab40bdb31ad1e759b54660a5eac09b307b6c38b3472fa6d71397f60396ae9"
-time = "2026-11-26T17:20:00+00:00"
+digest = "0aaa6bd2498d5a14971e07dc37a47219769e70a81e7ecaae5a340169a262e9bc"
+time = "2026-11-26T17:58:00+00:00"
 
 [files]
 "ad3_rlc_pilot.py" = "eb3487ec66b9f20b8604f44a62fd2f678441e45e3a70cb3d5441858fd9590d0b"
 "cobe_firas.py" = "9fefdf4ef2daf59388dc6296b2fc1393e13c24848f6692e74efa33f9118999bb"
 "coil.py" = "ef529f782a74ca479764bf82851a3467c1c4e2e4bbcdbca4cdc7f319aa731b71"
-"controls.py" = "d716b1c9bd127f38c302beb2345a1c26986498a93ffddd4f65499e16c44ff103"
+"controls.py" = "373cbe435ff99708f74b73fa5b0b12a69241f8f5c09caf63846f5ea6bc58bba8"
 "discrepancy.py" = "36608fb5cb0ddfd7ca7069dfaf9fce8375666e3621d4cac5b897caabe33bd5c9"
 "firas.py" = "f5d44e12cbbb269563d166e90aa020d5295d3a92e622175591ef2b5dd629d9fb"
-"followup.py" = "c63bb27bfd2e43c7e85219fc384a27c0096a0f6e8efabfb3d06692df56aa112e"
+"followup.py" = "e190ceec1d822cacc89e163bfba7cdb44a6ae843fb2d69c893c6f76ab715fc99"
 "graph.py" = "d57625adaf595ab350e769d6ca3864ff7ba1c9e452d7f2a74bea9b060b88c243"
 "log.py" = "75d2285c8a715dec57386351a8f2f8c43bcbcac574763bcbfc1130c706cb3400"
 "original.py" = "b5a73c956e85c1948ed2ee49e5fe6bd70e28250cec8d8450642a0579b1d3bc22"

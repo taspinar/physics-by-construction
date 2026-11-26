@@ -10,6 +10,12 @@
 
 [session]
 plugged_in = ""         # the time the AD3 was plugged in
+# The digest of outcome-code.toml on main before M1, as the supervisor
+# recorded it on Issue #619 after part 2's merge (a GitHub comment,
+# time-stamped by GitHub). The reference is that recorded digest, not the
+# file: a pin that differs from it is a deviation, and the outcomes are
+# exploratory.
+outcome_code_pin = ""
 
 [room]
 temperature_c = ""      # the room temperature read before M0, degrees C

@@ -18,11 +18,13 @@ freeze. ``evaluate`` applies the registration (``coil.evaluate``) and reports
 the deviations from its procedure (the wait of 45 minutes, the order of the
 measurements), which change no rule. The outcome code's identity is pinned
 for the follow-up (``outcome-code.toml``, ``CodePin``): when the code that
-evaluates a session is not the pinned code, or the pin is later than M1, the
-change is a deviation and the outcomes are exploratory (the registration's
-"Withheld part"). Without a session every outcome is
-``not evaluated``; after a second failed run of one measurement the session
-stops and the follow-up is ``inconclusive`` with its reasons.
+evaluates a session is not the pinned code, the pin is later than M1, or the
+pin differs from the one the session recorded (``outcome_code_pin``, the
+digest recorded on Issue #619 at part 2's merge), the change is a deviation
+and the outcomes are exploratory (the registration's "Withheld part").
+Without a session every outcome is ``not evaluated``; after a second
+failed run of one measurement the session stops and the follow-up is
+``inconclusive`` with its reasons.
 """
 
 import itertools
@@ -33,11 +35,15 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from pbc.data import REPO_ROOT
 from pbc.products.research_workspace import coil, graph, registration
 
 SESSION = "session.toml"
 READINGS = "readings.toml"
 CODE = "outcome-code.toml"
+# The pin of the outcome code in the repository (the simulated controls
+# record its digest in their sessions).
+PINNED = REPO_ROOT / "products/research-workspace/examples/coil-loss" / CODE
 SWEEPS = ("M0", "M1", "M2", "M3", "M5")
 REQUIRED_SWEEPS = ("M0", "M1", "M2", "M3")
 VALID, FAILED = "valid", "failed"
@@ -89,6 +95,9 @@ class Sweep:
 class Session:
     directory: Path
     plugged_in: str
+    # The digest of outcome-code.toml on main before M1, as recorded on
+    # Issue #619 after part 2's merge.
+    outcome_code_pin: str
     room_temperature_c: float
     room_time: str
     room_instrument: str
@@ -155,9 +164,16 @@ def code_deviations(
     session: Session, pin: CodePin, digest: str, files: dict
 ) -> list[str]:
     """The outcome code against its pin: a code other than the pinned one
-    (named by file), and a pin later than the start of M1, are each a
-    deviation that makes the outcomes exploratory."""
+    (named by file), a pin later than the start of M1, and a pin other than
+    the one the session recorded (the digest recorded on the Issue at part
+    2's merge) are each a deviation that makes the outcomes exploratory."""
     found = []
+    if session.outcome_code_pin != pin.digest:
+        found.append(
+            f"the pin of the outcome code ({pin.digest[:16]}) is not the pin the"
+            f" session recorded ({session.outcome_code_pin[:16]}): the pin changed"
+            " after the session recorded it, and its outcomes are exploratory"
+        )
     if digest != pin.digest:
         changed = sorted(
             name
@@ -295,6 +311,14 @@ def read_readings(path: Path, problems: list[str]) -> list[coil.Reading]:
     return out
 
 
+def _is_sha256(value) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(c in "0123456789abcdef" for c in value)
+    )
+
+
 def _table(value, where: str, problems: list[str]) -> dict:
     """``value`` when it is a table; otherwise the problem is named and an
     empty table stands in, so that every other problem is named too."""
@@ -377,6 +401,12 @@ def load(directory: Path, *, live: bool = True) -> Session:
     session = _table(data.get("session"), f"{SESSION} session", problems)
     room = _table(data.get("room"), f"{SESSION} room", problems)
     _time(session.get("plugged_in"), f"{SESSION} session.plugged_in", problems)
+    recorded_pin = session.get("outcome_code_pin")
+    if not _is_sha256(recorded_pin):
+        problems.append(
+            f"{SESSION} session.outcome_code_pin: {recorded_pin!r} is not the"
+            " 64 hexadecimal digits of the pin recorded on the Issue"
+        )
     temperature = _number(
         room.get("temperature_c"), f"{SESSION} room.temperature_c", problems
     )
@@ -444,6 +474,7 @@ def load(directory: Path, *, live: bool = True) -> Session:
     return Session(
         directory,
         session["plugged_in"],
+        recorded_pin,
         temperature,
         room["time"],
         instrument,
@@ -480,14 +511,17 @@ def admit(session: Session, freeze: registration.Freeze) -> None:
 def deviations(session: Session) -> list[str]:
     """The departures from the registered procedure, reported beside the
     outcomes (they change no rule): M0 earlier than 45 minutes after the
-    plug-in, and the measurements out of their registered order."""
+    plug-in (its earliest started attempt, failed or valid), and the
+    measurements out of their registered order."""
     found = []
     plugged = datetime.fromisoformat(session.plugged_in)
-    first = session.used("M0") or next(
-        (s for s in session.sweeps if s.measurement == "M0" and s.started), None
-    )
-    if first is not None:
-        start = datetime.fromisoformat(first.started)
+    starts = [
+        datetime.fromisoformat(s.started)
+        for s in session.sweeps
+        if s.measurement == "M0" and s.started
+    ]
+    if starts:
+        start = min(starts)
         if start < plugged + WAIT:
             minutes = (start - plugged).total_seconds() / 60.0
             found.append(

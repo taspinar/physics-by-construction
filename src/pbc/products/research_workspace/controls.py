@@ -222,9 +222,14 @@ def write_session(
     noise: tuple[float, float] | None = None,
     *,
     times: dict[str, str] | None = None,
+    pin: str | None = None,
 ) -> Path:
-    """A whole simulated session as the owner fills it in."""
+    """A whole simulated session as the owner fills it in; it records
+    ``pin`` as its outcome code pin (by default the digest of the current
+    pin, ``followup.PINNED``)."""
     noise = noise or noise_levels()
+    if pin is None:
+        pin = followup.load_pin(followup.PINNED).digest
     starts = {
         "M0": f"{SESSION_DAY}T14:00:00+01:00",
         "M1": f"{SESSION_DAY}T14:05:00+01:00",
@@ -238,6 +243,7 @@ def write_session(
     lines = [
         "[session]",
         f'plugged_in = "{SESSION_DAY}T13:00:00+01:00"',
+        f'outcome_code_pin = "{pin}"',
         "[room]",
         "temperature_c = 20.0",
         f'time = "{SESSION_DAY}T12:58:00+01:00"',

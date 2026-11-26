@@ -168,8 +168,11 @@ writes the same exports as the reproduction: `report.md`, `view.html`,
   the precondition are claims on missing runs. The follow-up log begins
   with the freeze and the identity of the outcome code, beside the identity
   pinned for the follow-up in `examples/coil-loss/outcome-code.toml`. A
-  session evaluated by other code, or with a pin later than M1, is a
-  deviation, and its outcomes are marked exploratory.
+  session evaluated by other code, with a pin later than M1, or with a
+  pin other than the one it recorded (`[session] outcome_code_pin`, the
+  pin's digest recorded on Issue #619 after part 2's merge, which is the
+  reference) is a deviation, and its outcomes are marked exploratory. A
+  change of the pin must also update its time.
 
 **The bench session** is the owner's, after part 2 is merged into `main`.
 Its records go in a folder `session/` beside the example's inputs:
