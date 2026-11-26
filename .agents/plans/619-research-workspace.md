@@ -46,6 +46,14 @@ with the plug-in time, and the device's conditions with every sweep). No rule an
 edits by hand and recomputed the digest last (see "Discoveries", part 0 of
 2026-11-26).
 
+**Part 2 (2026-11-26).** The owner started part 2 on the Issue ("Owner's
+start of part 2: the original track") after the freeze at d4d9a16. The
+part-2 session built the original track without a measurement and without
+editing the text between the markers: the registration as data, its rules,
+the session's templates and reader, the positive controls, and the track
+end to end with the follow-up's evidence `not evaluated` (see
+"Discoveries", part 2 session 1). Parts 2b, 3, and 4 are not approved.
+
 **The registration below is no longer a draft. It is frozen when this
 text is on `main` after the owner's approving review** of the exact head
 of part 0's pull request, as "Freezing the registration" defines; until
@@ -771,7 +779,7 @@ at that commit; (2) a comment on Issue #619 by the owner or the supervisor
 naming the merge commit and the digest above; (3) from part 2 on, the first
 entry of the follow-up log, which names the digest, the merge commit, and
 its date, and a test that refuses any evidence whose measurement time
-(from the run records of M1 to M3 and the readings of M4) precedes that
+(from the run records of M0 to M3 and M5, and the readings of M4) precedes that
 date. A plan file on a feature branch is not frozen: a branch can be
 rewritten, and `main` cannot. The registration requires part 2 (the
 analysis code) to be merged into `main` before M1 is made (decided under
@@ -942,7 +950,7 @@ holds no key and records nothing.
 
 | Session | When | On the breadboard | What it needs | Commands |
 |---|---|---|---|---|
-| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), a room thermometer read by the owner, the AD3 plugged in 45 minutes before M0, about two hours with that wait | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M0, M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
+| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), a room thermometer read by the owner, the AD3 plugged in 45 minutes before M0, about two hours with that wait | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M0, M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the TOML template that part 2 provides (`readings-template.toml`; see "Discoveries", part 2 session 1) |
 
 **Reserved until the freeze:** M0 to M5 entirely, and in particular every
 multimeter reading of the inductor and the resistor, and
@@ -1427,3 +1435,64 @@ dependency group.
   module that computes an outcome or applies a rule (the guarantee #623
   repairs); and a sentence on when the text is frozen (question 9).
 
+- (2026-11-26, part 2 session 1) Part 2 is built as four modules of the
+  outcome code and a view: `coil.py` (the registered quantities and rules),
+  `followup.py` (the owner's session: its templates' reader, the refusals,
+  the freeze-date admission, the deviations, the stop after two failures),
+  `controls.py` (the simulated sessions and the boundary cases), and
+  `original.py` (the track's project, report, and verification), with
+  `original_view.py` outside the outcome code. Decisions and findings:
+  - **The controls do not use the physics lab's simulated bench.** It
+    integrates a series circuit with a constant resistance and probes node
+    A only, and `ImperfectChannels` has a gain and an offset but no delay.
+    The controls compute the steady state in closed form at the 13 coarse
+    frequencies (8 periods of 64 samples, the registered input) for the
+    three probe positions, apply a gain and a delay to channel 2, add noise
+    at the level the pilot's own phasor fits leave (0.40 mV and 3.42 mV,
+    the medians over the pilot's R-L node sweep), write the session in the
+    owner's format, and read it through `followup.evaluate`. The physics
+    lab and `pbc.instruments` are unchanged.
+  - **A steep AC loss makes G1 undecidable.** A loss that grows as
+    sqrt(f / 4.5 kHz) times the coil's 20 ohm differs so much over 31.6,
+    43.0, and 58.5 kHz that u exceeds 5 ohm, and G1 is `inconclusive` by
+    its undecidable case. The AC control therefore adds a part growing as
+    sqrt(f) to the DC resistance (u about 3.8 ohm, G1 `short`), and the
+    steep loss is kept as a control of its own whose expected outcome is
+    `inconclusive`. No threshold was changed; the finding is that the
+    registered u > 5 ohm can decide G1 on a strongly sloped loss, which
+    the pilot's spread (u_L about 1.8 ohm) does not show.
+  - **The resolution of the mismatch.** With ideal channels at the
+    pilot's noise the largest |dphi| over the controls was about
+    0.03 degrees and the largest |dg| about 0.0005, nine and six times below
+    the thresholds 0.3 degrees and 0.003: the report says before the
+    measurement that the same-node sweep resolves a measurable mismatch on
+    the simulated bench (not that the AD3 will).
+  - **Readings of the text that the code had to fix, none of them a
+    change of a rule:** the precondition reads pilot run 3 with R_s_bb, as
+    M2 is read, so that it compares the two sweeps and not two
+    resistances; u_hi takes the full uncertainty of R_s_bb (the text says
+    "from the phasor fits and R_s_bb"); the "within" of the precondition is
+    "<="; the coarse crossing of M0 and M1 is interpolated linearly in log
+    frequency between the bracketing coarse points; the freeze time is the
+    merge's `mergedAt`, 2026-11-26T15:43:26Z, and a measurement at that
+    second is admitted.
+  - **The registration as data** names its outcomes with their rule ("G1:
+    accounted"), so that one registration holds both rules and
+    `registration.discriminates` checks the five explanations together.
+    Its findings G1 and G2 enter the log as the registration's own
+    (`log.REGISTERED`, accepted like the scripted reviewer's), so their
+    state is `open` until the session's evidence.
+  - **The outcome code's identity** now includes the pilot's reader
+    (`ad3_rlc_pilot.py`), which computes the phasors that every outcome
+    rests on; this changes the outcome digest of the reproduction too
+    (no project is committed, so nothing recorded is invalidated).
+  - **The readings template is TOML, not CSV.** The repository's check of
+    committed files (`check_committed_files`) reports a `.csv` under
+    `products/` as stored output; the Issue allows "a CSV or TOML file",
+    so the owner fills in `readings-template.toml`, one `[[reading]]` per
+    reading, with the same fields and the same refusals.
+  - **No agent reviewer for the original track.** The part's
+    instructions name none; `review`, `record`, and `accept-finding`
+    refuse an original-track project, and its outcomes are decided by the
+    rules. A reviewer role for the track belongs to part 3 if the page
+    needs it.

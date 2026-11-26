@@ -1,0 +1,14 @@
+# Where the registration of the coil-loss follow-up is frozen (the plan of
+# Issue #619, "Freezing the registration"): the sha256 of registration.md,
+# which is the text between the registration's markers in
+# .agents/plans/619-research-workspace.md byte for byte; the merge commit on
+# main that holds it, after the owner's approving review of the exact head
+# of pull request 625; and the time of that merge (GitHub's mergedAt, as the
+# Issue's comment "The registration is frozen" records it). Evidence measured
+# before this time is refused.
+
+digest = "3e4cfd1ae9a4fde8e116df21c3b5035ef05b63322605f94e25a466ee13f0a429"
+commit = "d4d9a16d8a71fdaefb27c4b684dba622e5f82280"
+time = "2026-11-26T15:43:26+00:00"
+pull_request = 625
+head = "6767d38b6e693d3932931a0f2f73c051cc991d7f"

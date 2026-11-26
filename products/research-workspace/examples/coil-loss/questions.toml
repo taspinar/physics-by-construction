@@ -1,0 +1,48 @@
+# The questions considered for the original track (the plan of Issue #619,
+# "Questions considered"), each with its decision, its reason, and what
+# would warrant revisiting it. The selection rule is declared before the
+# assessment: a question is selected only when every check passes
+# (feasible, falsifiable, within the budget); no rating is read.
+
+[budget]
+stages = 4
+
+[question.coil-loss]
+question = "Why does the ideal series RLC model fail on the pilot's circuit: is the loss near the resonance the DC resistance of the parts or a loss that exists only in alternating current (G1), and are its rise with the frequency and the growing phase residual properties of the circuit or of the two channels (G2)?"
+proposer = "the plan of Issue #619"
+datasets = ["ad3-rlc-pilot"]
+outcomes = ["accounted", "short", "exceeds", "artefact", "remains", "mixed", "inconclusive"]
+stages = ["pilot", "controls", "follow-up"]
+decision = "selected"
+reason = "the pilot is a declared dataset with a go; the registered rules have more than two reachable outcomes; the follow-up needs one bench session"
+revisit = "if the parts of the pilot cannot be identified at the bench (the precondition), as a question about the circuit of M1 to M5"
+
+[question.capacitance]
+question = "Is the capacitance read from the pilot (14.55 nF against 10 nF nominal) the part's own tolerance (G3)?"
+proposer = "the plan of Issue #619"
+datasets = ["ad3-rlc-pilot"]
+outcomes = ["tolerance", "elsewhere", "inconclusive"]
+stages = ["pilot", "follow-up"]
+decision = "deferred"
+reason = "the owner's meter, a Mastech MAS830BC, has no capacitance range (the owner's answer of 2026-11-25)"
+revisit = "with a meter that has a capacitance range, as a new registration"
+
+[question.led-pair]
+question = "Does the model of the LED pair hold on the owner's bench?"
+proposer = "the plan of Issue #619"
+datasets = ["ad3-rlc-pilot"]
+outcomes = ["holds", "fails"]
+stages = ["pilot"]
+decision = "rejected"
+reason = "it is the protocol of SA9 (F145), not a question of this capstone"
+revisit = "if the held-out prediction of SA9 fails on the owner's bench"
+
+[question.die-temperature]
+question = "Does the AD3's die temperature change the measured response?"
+proposer = "the plan of Issue #619"
+datasets = ["ad3-rlc-pilot"]
+outcomes = ["changes"]
+stages = ["pilot"]
+decision = "rejected"
+reason = "the pilot's record holds 61.6 to 63.7 degrees C only: no variation to test, and the rule has one outcome"
+revisit = "with a cooling or warming run"

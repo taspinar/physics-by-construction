@@ -35,6 +35,9 @@ ACCEPTED = "accepted"
 DECLINED = "declined"
 PROPOSED = "proposed"
 SCRIPTED = "scripted reviewer"
+# The registration's own questions (G1, G2 of the original track): findings
+# that ask for evidence, stated before any measurement, never proposals.
+REGISTERED = "the registration"
 
 
 class LogRefused(ValueError):
@@ -77,13 +80,14 @@ class Log:
     def find(
         self, key: str, claim: str, reviewer: str, text: str, kind: str, check: str
     ) -> Entry:
-        """Record a finding. A finding by anyone but the scripted reviewer is
-        ``proposed`` until a recomputed check accepts it (``accept``)."""
+        """Record a finding. A finding by anyone but the scripted reviewer or
+        the registration is ``proposed`` until a recomputed check accepts it
+        (``accept``)."""
         if kind not in KINDS:
             raise LogRefused(f"unknown kind {kind!r}")
         if key in self.findings():
             raise LogRefused(f"there is already a finding {key!r}")
-        state = ACCEPTED if reviewer == SCRIPTED else PROPOSED
+        state = ACCEPTED if reviewer in (SCRIPTED, REGISTERED) else PROPOSED
         return self._add(
             FINDING,
             {

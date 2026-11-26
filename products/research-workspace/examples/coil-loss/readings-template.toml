@@ -1,0 +1,179 @@
+# The readings of M4 (the registration, M4 and "Meter readings"). Copy this
+# file to readings.toml in the session's folder and fill in value_ohm (a
+# number, in ohm) and time for every [[reading]], in the order given: Z1 (the
+# leads shorted, before any part), R_dc_bb (the inductor across its two
+# breadboard rows), R_dc (the inductor out of the breadboard), R_s_bb (the
+# resistor across its two rows, the inductor lifted), Z2 (the leads shorted
+# again, after the last part).
+# Every reading on the 200 ohm range (resolution 0.1 ohm); a part whose
+# reading overloads it is read on the 2000 ohm range: then write
+# range_ohm = 2000 and resolution_ohm = 1 for its three readings. p_percent
+# and n_digits are the registered specification (0.8 % + 3 digits); do not
+# change them. time: ISO 8601 with the offset from UTC, for example
+# "2026-12-03T15:04:00+01:00". The workspace refuses a file with an empty,
+# extra, or missing reading.
+
+[[reading]]
+quantity = "Z1"
+reading = 1
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "Z1"
+reading = 2
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "Z1"
+reading = 3
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_dc_bb"
+reading = 1
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_dc_bb"
+reading = 2
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_dc_bb"
+reading = 3
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_dc"
+reading = 1
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_dc"
+reading = 2
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_dc"
+reading = 3
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_s_bb"
+reading = 1
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_s_bb"
+reading = 2
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "R_s_bb"
+reading = 3
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "Z2"
+reading = 1
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "Z2"
+reading = 2
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""
+
+[[reading]]
+quantity = "Z2"
+reading = 3
+meter = "Mastech MAS830BC"
+range_ohm = 200
+resolution_ohm = 0.1
+p_percent = 0.8
+n_digits = 3
+value_ohm = ""
+time = ""

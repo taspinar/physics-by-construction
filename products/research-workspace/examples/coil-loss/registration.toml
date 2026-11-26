@@ -1,0 +1,90 @@
+# The registered plan of the original track as the workspace's data: the
+# explanations, the outcomes each predicts, the rules, the withheld part, and
+# the stopping conditions of registration.md (the frozen text, copied byte for
+# byte from the plan of Issue #619; freeze.toml holds its digest). This file
+# restates the frozen text for the workspace's checks (two or more
+# explanations, no outcome predicted by two); where the two differ, the frozen
+# text holds. The outcomes are named with their rule, G1 or G2.
+
+key = "coil-loss-followup"
+kind = "original"
+question = """Why does the ideal series RLC model fail on the pilot's circuit \
+(ad3-rlc-pilot)? G1: is the loss near the resonance (about 63 ohm) the DC \
+resistance of the parts or a loss that exists only in alternating current? \
+G2: are the rise of that loss with the frequency and the growing phase \
+residual properties of the circuit or of the two channels? (G3, the \
+capacitance, is dropped: the meter has no capacitance range.)"""
+hypotheses = [
+    "G1: D = R_L0 - R_dc_bb is the AC loss of the coil (short) or zero within its uncertainty (accounted).",
+    "G2: the rise and the phase residual are removed by the channels' correction H / m (artefact), remain without a measurable mismatch (remains), or remain beside one (mixed).",
+]
+outcomes = [
+    "G1: accounted",
+    "G1: short",
+    "G1: exceeds",
+    "G1: inconclusive",
+    "G2: artefact",
+    "G2: remains",
+    "G2: mixed",
+    "G2: inconclusive",
+]
+rule = """G1: undecidable first, inconclusive if u > 5 ohm; accounted if |D| <= \
+2 u; short if D > 3 u and D > 5 ohm; exceeds if D < -3 u (predicted by \
+neither explanation, a new finding); otherwise inconclusive. G2: the \
+mismatch is measurable when max |dphi| > 0.3 degrees or max |dg| > 0.003; \
+artefact if measurable, Rise <= 2 u_hi, and P1 <= P0 / 2; remains if not \
+measurable and Rise > 3 u_hi; mixed if measurable and Rise > 3 u_hi; \
+otherwise inconclusive. Each inequality as written; a case that meets no \
+predicted outcome is a result, reported as inconclusive."""
+withheld = """M1 to M5 are the confirmatory measurements; the pilot's data chose \
+the thresholds. The analysis code that computes the outcomes is merged into \
+main (part 2) before M1 is made, with its code identity recorded in the log; \
+a change of that code after M1 is a deviation, and its result exploratory."""
+stopping = [
+    "One bench session.",
+    "A failed run (an invalid capture, a refused output) is repeated once and both are kept; a second failure stops the session, and the follow-up is inconclusive with its reasons.",
+    "Evidence whose measurement time precedes the freeze is refused.",
+]
+
+[[explanation]]
+name = "DC"
+statement = "A constant series resistance: the wire of the coil and the parts' own values."
+predicts = ["G1: accounted"]
+
+[[explanation]]
+name = "AC"
+statement = "A loss of the coil that exists only in alternating current, from its core and the skin and proximity effects."
+predicts = ["G1: short"]
+
+[[explanation]]
+name = "MISMATCH"
+statement = "The channels' relative gain and phase."
+predicts = ["G2: artefact"]
+
+[[explanation]]
+name = "CIRCUIT"
+statement = "A loss that grows with the frequency."
+predicts = ["G2: remains"]
+
+[[explanation]]
+name = "BOTH"
+statement = "Both the channels' mismatch and a loss that grows with the frequency."
+predicts = ["G2: mixed"]
+
+[[criterion]]
+quantity = "the precondition (identity of the parts)"
+source = "pilot run 3"
+rule = "M2 agrees with pilot run 3 when L and C each agree within 2 % and R_L0 within 3 u_L"
+otherwise = "the conclusions are scoped to the circuit of M1 to M5; the pilot's discrepancy stays not evaluated for G1; G2 carries over"
+
+[[criterion]]
+quantity = "G1, the loss near the resonance"
+source = "M2, M4"
+rule = "as the rule above, with u = sqrt(u_L^2 + u_dc,ng^2 + (p |D| / sqrt(3))^2)"
+otherwise = "inconclusive, reported as a result"
+
+[[criterion]]
+quantity = "G2, the frequency dependence and the phase residual"
+source = "M1, M2, M3, M4"
+rule = "as the rule above, with Rise = R_L(200 kHz) - R_L(43.0 kHz) after the correction H / m"
+otherwise = "inconclusive, reported as a result"
