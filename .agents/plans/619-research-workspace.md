@@ -481,9 +481,12 @@ unchanged (1 V, 5 kHz to 200 kHz, 13 coarse log-spaced points, channel 1
 on the 5 V range, channel 2 on the 50 V range). Close WaveForms first.
 
 Measurements, in this order, all after the freeze:
+Before M0 the owner reads the room temperature, and it is recorded with
+its time and the instrument read (no rule reads it).
 M0. Warm-up: one capacitor sweep, wired as M1, made first. No rule reads
-    it; its raw data are kept and its -90 degree crossing is reported
-    beside M1's (see "Known before the freeze").
+    it; its raw data and its run record are kept in full, as for M1, and
+    its -90 degree crossing is reported beside M1's (see "Known before
+    the freeze").
 M1. Capacitor sweep: scope 1+ at W1, 2+ at node A (as pilot run 2).
 M2. R-L node sweep: scope 1+ at W1, 2+ at the R-L node (as pilot run 3).
 M3. Same-node sweep: scope 1+ and 2+ both at W1. The physics lab reports
@@ -620,11 +623,8 @@ about 1 % higher than the following ones (49.99 kHz, then 49.52 to
 49.58 kHz in ten campaigns six seconds apart, with no further trend);
 the three of the evening read 50.18, 49.83, and 49.67 kHz. The pilot's
 two capacitor sweeps, minutes apart, agreed to 5 Hz. The cause is not
-known and none is assigned here. Candidates named, not tested: the
-ceramic capacitor (the pilot found it 45 % above its nominal value; such
-a part can age and depend on the temperature and on its history) and the
-ferrite inductor. No multimeter reading of a part, no sweep at the R-L
-node, and no same-node sweep was made. The precondition above (identity
+known, and none is assigned or proposed here. No multimeter reading of a
+part, no sweep at the R-L node, and no same-node sweep was made. The precondition above (identity
 of the parts) is therefore expected to fail on L or C; that expectation
 was known at the freeze. No rule and no threshold of this registration
 was changed after these campaigns. One step was added because of them:
@@ -651,10 +651,12 @@ inconclusive.
 
 Registration digest (sha256 of the bytes from the line after the begin
 marker to the line before the end marker, both lines included, with their
-final newline): `8843f954fe6dacfd978209f248581ccf80033ae9533732e2e18ae54a09dcd0cd`
-(recomputed on 2026-11-26 in part 0, after "Known before the freeze" and
-M0 were added to the registration, and after every other edit of this plan;
-the earlier digests `89973f39…7758`, `c7c8054e…d033`, and `932d2b60…2d96` are void). Recompute it with
+final newline): `7cb06a3830174bd18e121610b7fc73e2de87efe805c71d4d5430d143c6d0a0d1`
+(recomputed on 2026-11-26 in part 0, after "Known before the freeze", M0,
+and the room temperature were added to the registration by the owner's
+choices of that day, and after every other edit of this plan; the earlier
+digests `89973f39…7758`, `c7c8054e…d033`, `932d2b60…2d96`, and
+`8843f954…d0cd` are void). Recompute it with
 `awk '/^<!-- registration:begin -->$/{f=1;next}/^<!-- registration:end -->$/{f=0}f' .agents/plans/619-research-workspace.md | shasum -a 256`;
 any edit between the markers before the freeze requires a new digest on
 this line, and after the freeze is a new registration.
@@ -871,7 +873,7 @@ holds no key and records nothing.
 
 | Session | When | On the breadboard | What it needs | Commands |
 |---|---|---|---|---|
-| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M0, M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
+| F (the follow-up) | after the freeze and after part 2 is merged into `main`, as the registration requires (decided under open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), a room thermometer read by the owner, about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M0, M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
 
 **Reserved until the freeze:** M0 to M5 entirely, and in particular every
 multimeter reading of the inductor and the resistor, and
