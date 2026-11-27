@@ -1,0 +1,524 @@
+{
+  "product": "physics-lab",
+  "kind": "campaign",
+  "route": "adaptive",
+  "status": "completed",
+  "segment": {
+    "number": 1,
+    "status": "complete",
+    "made": [
+      "m001",
+      "m002",
+      "m003",
+      "m004",
+      "m005",
+      "m006",
+      "m007",
+      "m008",
+      "m009",
+      "m010",
+      "m011",
+      "m012",
+      "m013"
+    ],
+    "lost": null,
+    "checkpoint_digest": "c46e9f86eed53ff132604607cb9861e7681b1a5ec92c83d7e508f0750df37e6c",
+    "output": null,
+    "diagnostics": []
+  },
+  "plan": {
+    "circuit": "led-pair",
+    "protocols": [
+      "amplitude-response"
+    ],
+    "amplitude_v": 1.0,
+    "low_hz": 1000.0,
+    "high_hz": 25000.0,
+    "sweep_points": 9,
+    "periods": 8,
+    "samples_per_period": 64,
+    "f0_target": 0.0005,
+    "square_hz": 100.0,
+    "transient_rate_hz": 500000.0,
+    "ringing_max_hz": 25000.0,
+    "min_ringdowns": 3,
+    "q_target": 0.01,
+    "amplitudes_v": [
+      0.2,
+      0.5,
+      1.0,
+      1.2,
+      1.4,
+      1.5,
+      1.6,
+      1.7,
+      1.8,
+      1.9,
+      2.0
+    ],
+    "amplitude_frequency_hz": 1000.0,
+    "amplitude_refinements": 2,
+    "series_resistance_ohm": 100.0,
+    "inductance_h": 0.01,
+    "capacitance_f": 1e-07,
+    "budget": 20
+  },
+  "run": {
+    "mode": "live",
+    "device": {
+      "device": "Digilent Analog Discovery 3",
+      "serial": "AD3-001",
+      "sdk": "WaveForms SDK 3.25.1",
+      "library": "/Library/Frameworks/dwf.framework/dwf",
+      "calibration": "the device's factory calibration, not adjusted; channel 1 (source) on the 5 V range, channel 2 (response) on the 50 V range, both against ground; the generator W1, a sine with offset 0 V, or a square wave between 0 V and the amplitude (amplitude and offset each half of it)",
+      "on_close": "stop",
+      "frequency_set_hz": "1000"
+    },
+    "configuration": {
+      "plan": {
+        "circuit": "led-pair",
+        "protocols": [
+          "amplitude-response"
+        ],
+        "amplitude_v": 1.0,
+        "low_hz": 1000.0,
+        "high_hz": 25000.0,
+        "sweep_points": 9,
+        "periods": 8,
+        "samples_per_period": 64,
+        "f0_target": 0.0005,
+        "square_hz": 100.0,
+        "transient_rate_hz": 500000.0,
+        "ringing_max_hz": 25000.0,
+        "min_ringdowns": 3,
+        "q_target": 0.01,
+        "amplitudes_v": [
+          0.2,
+          0.5,
+          1.0,
+          1.2,
+          1.4,
+          1.5,
+          1.6,
+          1.7,
+          1.8,
+          1.9,
+          2.0
+        ],
+        "amplitude_frequency_hz": 1000.0,
+        "amplitude_refinements": 2,
+        "series_resistance_ohm": 100.0,
+        "inductance_h": 0.01,
+        "capacitance_f": 1e-07,
+        "budget": 20
+      },
+      "route": "adaptive",
+      "seed": 0,
+      "protocols": {
+        "amplitude-response": "f145-amplitude-response-1"
+      },
+      "segment": 1
+    },
+    "units": {
+      "frequency": "Hz",
+      "amplitude": "V",
+      "time": "s",
+      "source": "V",
+      "response": "V",
+      "gain": "dimensionless (V/V)",
+      "phase": "degrees",
+      "decay rate": "1/s",
+      "h3": "dimensionless (V/V)"
+    },
+    "processing": [
+      "every capture passes the quality gate (pbc.products.physics_lab.quality) before a number is read; an invalid one is recorded and never fitted",
+      "frequency response: amplitude and phase of each channel by a least-squares sine fit over the valid samples (pbc.electromagnetism.measurement.fit_sine); f0, Q, and k with standard errors from a weighted fit of the second-order response to the log-gain and the phase (pbc.products.physics_lab.resonance)",
+      "transient: the ring-down after the first rising edge of the square wave, fitted by v_inf + e^(-alpha t)(a cos omega_d t + b sin omega_d t); f0 and Q with standard errors (pbc.products.physics_lab.ringdown); repetitions combined by their weighted mean, widened by the Birge ratio",
+      "amplitude response: the fundamental and the odd harmonics of the response fitted together; the characteristic v = n V_T asinh(i / 2 I_s) fitted to the samples above 0.5 mA (pbc.products.physics_lab.nonlinear)"
+    ],
+    "started": "2026-11-26T16:13:47Z",
+    "finished": "2026-11-26T16:13:47Z",
+    "new_experiment": true,
+    "operations": {
+      "accepted": 26,
+      "refused": 0
+    },
+    "label": "live measurement on the learner's own instrument"
+  },
+  "execution_modes": [
+    "live"
+  ],
+  "evaluation": {
+    "acquisitions": 13,
+    "simulator_checks": {},
+    "agreements": [],
+    "amplitude-response": {
+      "valid": 13,
+      "invalid": 0,
+      "points": [
+        {
+          "amplitude_v": 0.2,
+          "source_v": 0.20046482380183767,
+          "gain": 0.9675828121730107,
+          "gain_se": 0.0003626272552010044,
+          "h3": 0.0033309679752804465,
+          "h3_se": 0.0003705656393606694
+        },
+        {
+          "amplitude_v": 0.5,
+          "source_v": 0.5010427707003242,
+          "gain": 0.987824585677216,
+          "gain_se": 0.00015730793011441586,
+          "h3": 0.005949312953279077,
+          "h3_se": 0.0001564296520018559
+        },
+        {
+          "amplitude_v": 1.0,
+          "source_v": 1.0013187683603015,
+          "gain": 0.995171999590141,
+          "gain_se": 8.957391882740911e-05,
+          "h3": 0.0026464298631533787,
+          "h3_se": 8.657604114050853e-05
+        },
+        {
+          "amplitude_v": 1.2,
+          "source_v": 1.2015323394150335,
+          "gain": 0.9961455219551767,
+          "gain_se": 8.650406560134141e-05,
+          "h3": 0.0015975746829744303,
+          "h3_se": 8.2378272921362e-05
+        },
+        {
+          "amplitude_v": 1.4,
+          "source_v": 1.401966294415586,
+          "gain": 0.9960618332617266,
+          "gain_se": 7.689580896472148e-05,
+          "h3": 0.0010110819938652402,
+          "h3_se": 6.901986101686765e-05
+        },
+        {
+          "amplitude_v": 1.5,
+          "source_v": 1.5020928056207496,
+          "gain": 0.997242667727501,
+          "gain_se": 7.028643924649208e-05,
+          "h3": 0.0014951672361037827,
+          "h3_se": 6.373533660723206e-05
+        },
+        {
+          "amplitude_v": 1.6,
+          "source_v": 1.6026839187371864,
+          "gain": 0.9973588251288963,
+          "gain_se": 7.001230996295307e-05,
+          "h3": 0.0011893675404516422,
+          "h3_se": 6.386042060032547e-05
+        },
+        {
+          "amplitude_v": 1.7,
+          "source_v": 1.702561849490544,
+          "gain": 0.9971695466273391,
+          "gain_se": 7.167169477104587e-05,
+          "h3": 0.0009212335282474544,
+          "h3_se": 6.480198013268967e-05
+        },
+        {
+          "amplitude_v": 1.8,
+          "source_v": 1.8027549557536429,
+          "gain": 0.9946110841819978,
+          "gain_se": 0.00012199984948594664,
+          "h3": 0.0017679775238023383,
+          "h3_se": 0.00011858665341643789
+        },
+        {
+          "amplitude_v": 1.9,
+          "source_v": 1.9026988916532626,
+          "gain": 0.9862887165137282,
+          "gain_se": 0.00020241638345057172,
+          "h3": 0.009357663054222424,
+          "h3_se": 0.00020289967711692995
+        },
+        {
+          "amplitude_v": 2.0,
+          "source_v": 2.002592147691706,
+          "gain": 0.9729169967657987,
+          "gain_se": 0.00024322391781607917,
+          "h3": 0.020328295825994554,
+          "h3_se": 0.0002483530650709877
+        },
+        {
+          "amplitude_v": 0.35,
+          "source_v": 0.3509218602746319,
+          "gain": 0.9802724105041688,
+          "gain_se": 0.00020289406561240381,
+          "h3": 0.004218260693937102,
+          "h3_se": 0.00020306095054650492
+        },
+        {
+          "amplitude_v": 1.95,
+          "source_v": 1.9525865405393148,
+          "gain": 0.9801000332914476,
+          "gain_se": 0.00022659150549761577,
+          "h3": 0.014499487802590097,
+          "h3_se": 0.0002294610828047872
+        }
+      ],
+      "characteristic": {
+        "n": {
+          "value": 2.320610444917342,
+          "se": 0.03387850108512999
+        },
+        "log_is": {
+          "value": -37.83506263029658,
+          "se": 0.44838150663075343
+        },
+        "v_ref": {
+          "value": 1.8554040498824094,
+          "se": 0.00031501103485048775
+        },
+        "reference_current_a": 0.001,
+        "samples": 297
+      },
+      "held_out": {
+        "fitted_on_v": 2.0,
+        "agree": false,
+        "agreements": [
+          {
+            "amplitude_v": 0.2,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9675828121730107,
+              "se": 0.0003626272552010044
+            },
+            "b": {
+              "value": 0.9999999999994129,
+              "se": 4.578581993276003e-13
+            },
+            "difference": -0.03241718782640224,
+            "combined_se": 0.0003626272552010044,
+            "sigmas": 89.39534290778387,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 0.35,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9802724105041688,
+              "se": 0.00020289406561240381
+            },
+            "b": {
+              "value": 0.9999999999967869,
+              "se": 2.308677140798533e-12
+            },
+            "difference": -0.019727589492618103,
+            "combined_se": 0.00020289406561240381,
+            "sigmas": 97.2309832378462,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 0.5,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.987824585677216,
+              "se": 0.00015730793011441586
+            },
+            "b": {
+              "value": 0.9999999999772896,
+              "se": 1.487348468811919e-11
+            },
+            "difference": -0.012175414300073628,
+            "combined_se": 0.00015730793011441656,
+            "sigmas": 77.39860470618325,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.0,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.995171999590141,
+              "se": 8.957391882740911e-05
+            },
+            "b": {
+              "value": 0.9999999693803551,
+              "se": 1.3248140719375812e-08
+            },
+            "difference": -0.004827969790214048,
+            "combined_se": 8.957391980712081e-05,
+            "sigmas": 53.89928006511379,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.2,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9961455219551767,
+              "se": 8.650406560134141e-05
+            },
+            "b": {
+              "value": 0.9999993723909549,
+              "se": 2.122693659965575e-07
+            },
+            "difference": -0.003853850435778239,
+            "combined_se": 8.650432604121553e-05,
+            "sigmas": 44.55095614457533,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.4,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9960618332617266,
+              "se": 7.689580896472148e-05
+            },
+            "b": {
+              "value": 0.9999865596569221,
+              "se": 3.2163651935792093e-06
+            },
+            "difference": -0.003924726395195477,
+            "combined_se": 7.696304594672309e-05,
+            "sigmas": 50.99494630075232,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.5,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.997242667727501,
+              "se": 7.028643924649208e-05
+            },
+            "b": {
+              "value": 0.9999373050894189,
+              "se": 1.1747569138381973e-05
+            },
+            "difference": -0.0026946373619178843,
+            "combined_se": 7.126141257799964e-05,
+            "sigmas": 37.81341492450001,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.6,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9973588251288963,
+              "se": 7.001230996295307e-05
+            },
+            "b": {
+              "value": 0.999706914412404,
+              "se": 3.871849981059898e-05
+            },
+            "difference": -0.002348089283507715,
+            "combined_se": 8.000528591244437e-05,
+            "sigmas": 29.349176829108522,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.7,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9971695466273391,
+              "se": 7.167169477104587e-05
+            },
+            "b": {
+              "value": 0.9987070866545475,
+              "se": 9.81578915747447e-05
+            },
+            "difference": -0.001537540027208406,
+            "combined_se": 0.00012153930849627745,
+            "sigmas": 12.650557636301661,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.8,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9946110841819978,
+              "se": 0.00012199984948594664
+            },
+            "b": {
+              "value": 0.995174324825147,
+              "se": 0.0001594060093341247
+            },
+            "difference": -0.0005632406431491654,
+            "combined_se": 0.0002007342499087405,
+            "sigmas": 2.805902049128291,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.9,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9862887165137282,
+              "se": 0.00020241638345057172
+            },
+            "b": {
+              "value": 0.9868641691761074,
+              "se": 0.0001547354325795644
+            },
+            "difference": -0.0005754526623792389,
+            "combined_se": 0.0002547850984355125,
+            "sigmas": 2.258580528895763,
+            "coverage": 2.0,
+            "agree": false
+          },
+          {
+            "amplitude_v": 1.95,
+            "quantity": "G1",
+            "first": "measured",
+            "second": "predicted",
+            "a": {
+              "value": 0.9801000332914476,
+              "se": 0.00022659150549761577
+            },
+            "b": {
+              "value": 0.9807456886016007,
+              "se": 0.00012570862152330364
+            },
+            "difference": -0.0006456553101531481,
+            "combined_se": 0.00025912616210827736,
+            "sigmas": 2.491663925016407,
+            "coverage": 2.0,
+            "agree": false
+          }
+        ]
+      }
+    }
+  },
+  "verdict": false,
+  "invalid": [],
+  "candidate_answer": null,
+  "comparison": null,
+  "evidence": {
+    "file": "evidence.json",
+    "summary": "Attempts: 1, correct 0 of 1\n  completed: 1\n  failed: 0\n  inconclusive: 0\n  invalid: 0\n  missing: 0\nadaptive-segment-1 [adaptive, cycle 1]: completed, not correct, candidate's report none (unverified) (complete after 13 measurements)\nclaim campaign: failed (this circuit, live mode, seed 0)"
+  }
+}

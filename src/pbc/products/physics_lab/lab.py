@@ -131,6 +131,41 @@ def load_plan(path: Path) -> tuple[CampaignPlan, int]:
     return CampaignPlan.from_dict(table), int(run.get("seed", 0))
 
 
+# The bench conditions a live campaign records besides the device's own
+# monitor (F145 part 3): given in the plan file's table [bench] or on the
+# command line, recorded as given, and "not recorded" when absent.
+NOT_RECORDED = "not recorded"
+BENCH_FIELDS = {
+    "plugged_in": "when the device was plugged in, as given (a time with its zone)",
+    "room_temperature_c": "the room temperature (degrees C), as given",
+}
+
+
+def load_bench(path: Path) -> dict[str, Any]:
+    """The bench conditions in the plan file ``path`` (table ``[bench]``),
+    only the fields given; an unknown key is an error."""
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
+    table = data.get("bench", {})
+    if not isinstance(table, dict):
+        raise ValueError(f"{path}: [bench] is not a table")
+    unknown = sorted(set(table) - set(BENCH_FIELDS))
+    if unknown:
+        raise ValueError(f"{path}: unknown keys of [bench]: {', '.join(unknown)}")
+    return dict(table)
+
+
+def bench_conditions(given: dict[str, Any] | None) -> dict[str, Any]:
+    """Every bench field, as given or ``NOT_RECORDED``."""
+    given = given or {}
+    unknown = sorted(set(given) - set(BENCH_FIELDS))
+    if unknown:
+        raise ValueError(f"unknown bench conditions: {', '.join(unknown)}")
+    return {
+        key: NOT_RECORDED if given.get(key) is None else given[key]
+        for key in BENCH_FIELDS
+    }
+
+
 def trace_path(plan: CampaignPlan) -> Path:
     """The default replay fixture of the agent route of ``plan``'s circuit."""
     return FIXTURES / f"agent-campaign-{plan.circuit}.json"
@@ -177,6 +212,7 @@ def run_campaign(
     on_campaign: Callable[[Campaign], None] | None = None,
     clock: Callable[[], str] = utc_now,
     wrap_driver: Callable[[Driver], Driver] | None = None,
+    bench: dict[str, Any] | None = None,
 ) -> LabResult:
     """Run the campaign of ``plan`` by ``route`` in ``mode`` and export it to
     ``out_dir``. A refusal of the instrument (a stop, a timeout, an open
@@ -185,7 +221,13 @@ def run_campaign(
     interrupted campaign from its checkpoint in ``out_dir`` (``resume``).
     ``wrap_driver`` changes the simulated bench below the guarded
     instrument before it is built (``bench.make_instrument``); the agent
-    route's baselines run on fresh, unwrapped benches."""
+    route's baselines run on fresh, unwrapped benches.
+
+    A live campaign records its operating conditions in the run record's
+    configuration: the device's own monitor at the start and the end, where
+    the driver reports one (``conditions``), and the ``bench`` conditions
+    (the plug-in time and the room temperature), as given or "not
+    recorded" (``bench_conditions``). The other modes record neither."""
     if route not in ROUTES:
         raise ValueError(f"unknown route {route!r}; one of {ROUTES}")
     instrument, rails = make_instrument(
@@ -209,6 +251,12 @@ def run_campaign(
         campaign = Campaign(plan, instrument, rails, checkpoint, (), on_record)
     if on_campaign is not None:
         on_campaign(campaign)
+    operating: dict[str, Any] = {}
+    monitor = getattr(driver, "conditions", None) if mode == LIVE else None
+    if mode == LIVE:
+        operating["bench"] = bench_conditions(bench)
+    if monitor is not None:
+        operating["conditions_at_start"] = monitor()
     started = clock()
     answer, comparison = None, None
     if route == AGENT:
@@ -218,6 +266,8 @@ def run_campaign(
         policy = next_step if route == ADAPTIVE else scripted_policy
         segment = run_segment(campaign, journal, policy)
     finished = clock()
+    if monitor is not None:
+        operating["conditions_at_end"] = monitor()
     record = instrument.run_record(
         configuration={
             "plan": plan.to_dict(),
@@ -225,6 +275,7 @@ def run_campaign(
             "seed": seed,
             "protocols": {p: PROTOCOL_VERSIONS[p] for p in plan.protocols},
             "segment": segment.number,
+            **operating,
         },
         units=UNITS,
         processing=PROCESSING,

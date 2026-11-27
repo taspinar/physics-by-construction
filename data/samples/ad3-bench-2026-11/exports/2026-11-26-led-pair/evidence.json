@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "record": {
+    "task": "f0 and Q of the declared series RLC circuit by two protocols, and the amplitude-dependent response of the declared LED pair, as the plan names them",
+    "hypothesis": "a driven, damped linear oscillator (one f0 and one Q for the frequency response and the ring-down); a memoryless, symmetric diode characteristic for the LED pair",
+    "assumptions": [
+      "the declared circuit is the one connected; nothing rewires it",
+      "the channels are calibrated as the run record declares",
+      "an invalid capture carries no number"
+    ],
+    "protocol_version": "f145-amplitude-response-1",
+    "split": {
+      "probed": "the settings the route chose, within the plan and the envelope",
+      "reference": "the closed form of the simulated circuit (simulated mode only), held by the evaluator; otherwise the other protocol and the held-out amplitudes"
+    },
+    "seeds": [
+      0
+    ],
+    "budgets": {
+      "measurements": 20
+    },
+    "code": "f62c047fde3d219564bea9533fda687942d4b552e453711fac8666c304164a6a",
+    "configuration": "22d48115c7d3c10621520d5d1452fb8d7e620bf8cb7ae76daefada74830352e6",
+    "environment": {
+      "python": "3.14.7",
+      "numpy": "2.5.5",
+      "execution_mode": "live",
+      "label": "live measurement on the learner's own instrument"
+    }
+  },
+  "cycles": [
+    {
+      "number": 1,
+      "reason": "first cycle"
+    }
+  ],
+  "attempts": [
+    {
+      "id": "adaptive-segment-1",
+      "candidate": "adaptive",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [
+        "complete after 13 measurements"
+      ],
+      "artifacts": [
+        {
+          "name": "raw samples",
+          "path": "raw.csv",
+          "sha256": "89ae7d229226f064677b97e07153a12497e67d2985b4dec32799885415274a6f",
+          "kind": "raw"
+        }
+      ],
+      "prior": []
+    }
+  ],
+  "evaluations": [
+    {
+      "attempt": "adaptive-segment-1",
+      "evaluator": "pbc.products.physics_lab.lab.evaluate, version 1",
+      "correct": false,
+      "metrics": {
+        "acquisitions": 13.0
+      },
+      "resources": {
+        "measurements": 13
+      },
+      "depends_on": [
+        {
+          "name": "raw samples",
+          "path": "raw.csv",
+          "sha256": "89ae7d229226f064677b97e07153a12497e67d2985b4dec32799885415274a6f",
+          "kind": "raw"
+        }
+      ],
+      "code": "f62c047fde3d219564bea9533fda687942d4b552e453711fac8666c304164a6a",
+      "configuration": "22d48115c7d3c10621520d5d1452fb8d7e620bf8cb7ae76daefada74830352e6"
+    }
+  ],
+  "reports": [],
+  "claims": [
+    {
+      "id": "campaign",
+      "text": "the evaluator's checks of this campaign pass: the closed form on the simulator, the agreement of the two protocols, and the held-out prediction, where each applies",
+      "scope": "this circuit, live mode, seed 0",
+      "runs": {
+        "adaptive-segment-1": true
+      },
+      "sources": []
+    }
+  ],
+  "frozen": [],
+  "finals": []
+}

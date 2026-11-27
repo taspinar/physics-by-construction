@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: If you use this dataset, please cite it as below.
+type: dataset
+title: "Series RLC and LED-pair campaigns on an Analog Discovery 3, bench sessions of 2026-11-25 and 2026-11-26"
+version: "1.0.0"
+date-released: "2026-11-27"
+license: "CC-BY-4.0"
+doi: "10.5281/zenodo.24578221"
+repository-code: "https://github.com/taspinar/physics-by-construction"
+authors:
+  - family-names: "Taspinar"
+    given-names: "Ahmet"
+keywords:
+  - "series RLC circuit"
+  - "resonance"
+  - "ring-down"
+  - "LED"
+  - "nonlinear response"
+  - "Analog Discovery 3"
+  - "laboratory automation"
+  - "physics education"

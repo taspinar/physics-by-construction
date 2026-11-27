@@ -1,0 +1,93 @@
+path	bytes	sha256	original_sha256	derivation
+CITATION.cff	615	521a9a07913de5213b0e6062d88c1bedcc15527b1ece82d9ef78fd5a16b77cca		written by the packager
+README.md	4408	eea90b0cf67e821d40b1e289c5027b7abd32a7960da1ba0c1335e38875a3bad7		written by the packager
+exports/2026-11-25-series-rlc-run2/evidence.json	3073	3ef6f84bbf402be8a1a0cbd9d58667d5ef512fd5b9ec29bcac273e285120b367		unchanged
+exports/2026-11-25-series-rlc-run2/measurements.csv	5613	0b70ec125faeac5aeb6db1d418aa863355e231217f1d554920645bdfaf4e40d5		unchanged
+exports/2026-11-25-series-rlc-run2/run.json	7030	0011103c0cdfe38e9600b721159f92bae42824e4407536da43fabcf232f9dfc0	f04a7fa80b5c76ffeb18b35301f9eb34773d3e1ae5fbfa63546b9fd82743e6f8	field replaced: run.device.serial = AD3-001
+exports/2026-11-25-series-rlc-run3/evidence.json	3073	1eeb807b03ba652827aa6fbcd0f4f5abfc24e342095b94149555cc2a243de40d		unchanged
+exports/2026-11-25-series-rlc-run3/measurements.csv	5610	7046693526baba6dc0e63dbadfd625051fe4becd69144ea3863c107dfdb53ba0		unchanged
+exports/2026-11-25-series-rlc-run3/run.json	7032	0723b8d62c2e878f7dc1871ad3d98003ab89852d0d3cb1f1bdfeabedda1f2742	7451f8a2510c72561b207776438396ddb979a83f21cfce33774cbd3b34533886	field replaced: run.device.serial = AD3-001
+exports/2026-11-25-series-rlc/evidence.json	3070	9c55b8aa4ab4647280f5ddbc0bed4f9b859522844df2c4d172c6ff150d594b47		unchanged
+exports/2026-11-25-series-rlc/measurements.csv	5606	489ad0a4453e937a33b2f86ea16b0ba8025754015c734308ae3f0c3d92933019		unchanged
+exports/2026-11-25-series-rlc/run.json	7023	ab7ef13b66cebd840daa4bcf6942f9000ecad8ba82f9d224f62adb78bc4f89da	c2082b94a5e7fa4aedff958b2a81b4b458eb7ab241d7798441295157ac64fe07	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-led-pair-run2/evidence.json	2972	31f9d506b5b224abee31e6374e5e528edcd5dc556237164d1f7aa1416d475900		unchanged
+exports/2026-11-26-led-pair-run2/measurements.csv	1765	0af8f1dcfc2f79814132c063ad5d0fae553e9fb64555240e12c9e7cdbfc8eb55		unchanged
+exports/2026-11-26-led-pair-run2/raw.csv	620499	2f3c81563089ac0a0dc2c713056ba21adb53857ca51f73642969cfcfeda09cf8		unchanged
+exports/2026-11-26-led-pair-run2/run.json	15978	7c3eda451262736c9a925edb6b5272988e023aa8141a47c03cbf47dbbcac6c8d	1dfc2f0ce045430ff2fbe0c2e3cb53eeec74abda5276ffa3fe9e1998854feec1	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-led-pair/evidence.json	2972	244c01cd044d530f950b508328128cf3544440a1db008fe176dc3e4f66728d41		unchanged
+exports/2026-11-26-led-pair/measurements.csv	1766	3a8559e89290c01b4faeb5d053b4c271c970f33f6799529e675079708d1ae53c		unchanged
+exports/2026-11-26-led-pair/raw.csv	620432	89ae7d229226f064677b97e07153a12497e67d2985b4dec32799885415274a6f		unchanged
+exports/2026-11-26-led-pair/run.json	15913	210e6220384f6df4d35ce0d1929b342a7e92896edd839c2802136fb61a99ccfe	7ff5552d2d2fb5d4658cace956d04039b19d1d3af0b4afd123e7e000f5162873	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run10/evidence.json	3073	676a576465213447a887f5beb8aaff72f5ca7f3f882bc421a31c6ad19940a450		unchanged
+exports/2026-11-26-series-rlc-run10/measurements.csv	5604	3a1dfbbd7bbd1fb42c9f50046c1d3e0fd766c135d480e7e35b51e0caf287f5ac		unchanged
+exports/2026-11-26-series-rlc-run10/run.json	7026	2e2fcb3cb4861966ed19461ca137566f17b44c40f45ec4160b9fb38908e9c0ee	fb64f1e929e1bbc8bba288158de6ad7ab2ddf3b2d42a98d5a25caf9defa5375d	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run11/evidence.json	3073	dca2307de181f5c340bff6fd06e977a00781b1200009506ba36fde66d48ce961		unchanged
+exports/2026-11-26-series-rlc-run11/measurements.csv	5613	884ade8bd0131c169c2d8dce3a0f2e799de95bd028476daaca6565f5f8938593		unchanged
+exports/2026-11-26-series-rlc-run11/run.json	7028	77219b29cce284aebcdd8f4ae314f1bdb55f15aa7800898cfe5970e090e0575f	a82c3765f3d8343ecc857273384fe3e806ecd01af694afc719e6f992b16728fe	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run12/evidence.json	3072	3d6220106b61e38238e27e56f7ac1b35b275591981405e2f22022013d0b4d3ba		unchanged
+exports/2026-11-26-series-rlc-run12/measurements.csv	5609	5dc7e29b5b53f5980412ba4b6008c8b31b4fe5673954ab084163df8a55bec616		unchanged
+exports/2026-11-26-series-rlc-run12/run.json	7032	85ef0287680d0d938911531a7fdad803dab3d71d25b5cf30d01525562fb3332a	ff31d7ac3c4d8f2ff418c538f1722a2c2bfbc7afd553b4743829f48b32f1a243	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run13/evidence.json	3073	fa668f9af9bcb89527fff20a4199862f033c7403ceead51d51303ec43c022620		unchanged
+exports/2026-11-26-series-rlc-run13/measurements.csv	5607	2919e091c6685697be978efe16d5995d6cd9a8715dbc1f8f3ff1ba904f5d9174		unchanged
+exports/2026-11-26-series-rlc-run13/run.json	7036	00678d5151b1dff431f3322d3d0d8807bd1406d325c4d5a185b3a7f2cfa557d1	bbf5726598ff3a57fc247fb47d3ba4ebb8693a8435a53300fcf059fa4af824f6	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run14/evidence.json	3073	d38984a3cbff4c8fd6d8892f724f7d21a4d3d471a26860a976c117c4f5949324		unchanged
+exports/2026-11-26-series-rlc-run14/measurements.csv	5601	3f454435fde65e1c6cc745d6afe57db02eb44958f7483e22cb9e18487f75fe26		unchanged
+exports/2026-11-26-series-rlc-run14/run.json	7031	68900ef6ba84c744d263a8d16e92969ae9a9b085f96b23ea3cee7723fde2c131	fa493a10532befde25aa6273d4098990d9d37953deb855a4015118f806abb6ec	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run15/evidence.json	3072	e24ccfd77341771d4e5c621513ef683fed7a62065be9cec5fd0cd369970c2c2f		unchanged
+exports/2026-11-26-series-rlc-run15/measurements.csv	5608	ae042d2565a2e4ed0ab122bd36b88765ae38bf90a94a2e7fa12f223b10910675		unchanged
+exports/2026-11-26-series-rlc-run15/run.json	7030	6d815da84431ac993979b4c084aa874e0f16d0500e8305d46a3c16198bf7107d	f5a327f4c61e6a2216fc87339d9e196512e24e0b163360dcb1e1931ab4d95172	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run16/evidence.json	3072	6045d31cea7fb29bb1042709ec6063a431003c530a55905d58169aa9bbde973a		unchanged
+exports/2026-11-26-series-rlc-run16/measurements.csv	5588	df442d46906a42f16cf0a31c57d57936441365bd16e54c80b23159d8f6f440ce		unchanged
+exports/2026-11-26-series-rlc-run16/run.json	7027	bc2eedd542aa00bcbd5aac079b2fa5ed0ec37d26c63fbaaeb3761160010c9d90	5a9181d4acdcdd11bc451347aab2c29f24832432f7f9efe6ab6aa89349c76f3b	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run17/evidence.json	3073	e028d38530b441c176dfc1f60b93755adaed14d0c4ad1dece0e5c752bafb12b1		unchanged
+exports/2026-11-26-series-rlc-run17/measurements.csv	5604	1e09ac9ac963cd09c233d6537f0e747d77d19653f48561b3c377be401bdb90a3		unchanged
+exports/2026-11-26-series-rlc-run17/run.json	7028	510d565cab1ec67170645cc5fece8591ad0d20720a41dacbaf279965f0b4a860	decddd4ffd354a1f37a0bfad81d3f653dd75ae6aa1b4ff11d4ed61fac62b7c8d	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run18/evidence.json	3071	7e38e8bf087b2ffc54424ec81f353238c76a84e99db2e7124d31813e5d59bdbd		unchanged
+exports/2026-11-26-series-rlc-run18/measurements.csv	5610	63c4e934b8ec7b62409317e61442402ddd91a81431b7c4e09cf8cbd0fd7aba2f		unchanged
+exports/2026-11-26-series-rlc-run18/run.json	7024	39faabfff09012982e5ed921bc2f1c698eee3a2679ff7035f1bc6914dc9186ab	8329ec1cf754e053a04fb93c2d5fc986212d6b90dc4ff688f376d202ffb33d76	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run19/evidence.json	3073	26ca0f34765ab6ada44d758ce84933e9c64944b377cf5df41f0daaa5de6f57be		unchanged
+exports/2026-11-26-series-rlc-run19/measurements.csv	5601	8c25faa3b5c9eab439bc133a7fbb6cdadfb6549935892975bfb8ea0c729a5289		unchanged
+exports/2026-11-26-series-rlc-run19/run.json	7027	809b94ed8c38f9bb39bb78251d35dff0356eaebade7d313de5ad9e8b440322b0	d30985c721119482a1aa1f18dd3f5935db15872880cd453ab49a128c481ca67c	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run2/evidence.json	3072	39516047b5c6497dea36a6348e40d104b679c005b3e91f4303add4807cd625a5		unchanged
+exports/2026-11-26-series-rlc-run2/measurements.csv	5597	544f7858d7a710c3bd2f857ad648252ab8392db6b8ab35567c875c150d66c5aa		unchanged
+exports/2026-11-26-series-rlc-run2/run.json	7026	472f343cb9499feaeab27837b802cfb78c88a39b409263d982c22af754d0d059	5a91b1faaa240d6441e95a5afeec36490b53abeb7e3c2e3a71529f6b76530caf	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run20/evidence.json	3072	8043cbe5a2b20ac7b2c9a8f6617532f03f968bebebc741135b89cf9eefbf06a2		unchanged
+exports/2026-11-26-series-rlc-run20/measurements.csv	5610	f2e859d88b9c3fe4dd63c5c33b834e344ed4141d37f7e518e7faff0665fa40d7		unchanged
+exports/2026-11-26-series-rlc-run20/run.json	7034	f30aa1b25e1fbbddf6d2999e2815f2335e25a3f87de05a7f97993ecd7cd96d4e	f256a99c252228becbb646df6902ed7966939f9c333b48ef0e9c0fcbdd727a8a	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run21/evidence.json	3074	002b62e1d695a5f288e4d3c63017ec01e6e85e53a7707de044f18d31eb0eed8c		unchanged
+exports/2026-11-26-series-rlc-run21/measurements.csv	5606	bd1b7c755b48625a2d1468d5a6592d09a257a4937adfdf1a53dd629d911f7266		unchanged
+exports/2026-11-26-series-rlc-run21/run.json	7033	de8edf875db58574c7924fd19300225077c8d3a71a9c4d33d8a89ac1400ed744	89b2c23fa34ee7a691024a9390a8a0622d59dc7da76296d672f2373669b1e5e0	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run22/evidence.json	3073	4c43466840afb90a2efd8df654ca28026d8798616e5c061f9f267fc6ae1cb7e4		unchanged
+exports/2026-11-26-series-rlc-run22/measurements.csv	5614	2f6f4f2ef5704b57ef501191d6356c0f166ff4a494e52cf9d799349524835e3e		unchanged
+exports/2026-11-26-series-rlc-run22/run.json	7031	a5ddef7e636762abc4a8449ed7efe753e6e18cc86196a36115e1d04ff0afd47f	639ab349b322bd39ff11b7cf4415c6c136ac3584f6a6aeefb30124bf0f07d82e	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run23/evidence.json	3071	16b2ac5a143a0ef64e9ae8b21000233454abf3364b31c7ebc61ad5b559368807		unchanged
+exports/2026-11-26-series-rlc-run23/measurements.csv	5614	5dc08eb0c30e3247a8d94cf0626c68a498df9f7c34e993059c3e8ed54db5b503		unchanged
+exports/2026-11-26-series-rlc-run23/run.json	7033	2861425d627f30a8ae32ea8dc5fe7f5af2ec377e9968f7603305b6e0117d9198	5073c2c1c7fad02bb538267e0ab63a0f853d675ad33e96c9409baefe1c93fdf3	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run24/evidence.json	3073	8b56ad591f2280090584d059f00f2b2b03c30bed067815945a62cd917b8cfe92		unchanged
+exports/2026-11-26-series-rlc-run24/measurements.csv	5604	3b21694e72ccd35936b9e737ae3adfd59f0d108ee41755f96ed848acee823d31		unchanged
+exports/2026-11-26-series-rlc-run24/run.json	7035	25fd720de59541e6eb6843a5e8650fb1f58e5b422f44a52e4953aa235f2197b9	b76e28b3fca1b287d05495492bef98ceb9e38e122b17867a3a3bdfb54ce85714	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run3/evidence.json	3073	3c35f7b4e074f2290d0c5488eeceb6a81d8d4e1881916514c6c819208fafd42a		unchanged
+exports/2026-11-26-series-rlc-run3/measurements.csv	5614	a014efa5de5654a0291af8efe2bbc8ebef071879b72059c66981d1e40a974780		unchanged
+exports/2026-11-26-series-rlc-run3/run.json	7034	d6ca46c532158ccd893cd350be6cffd09c39fe9e538861386d7138e1a2dba335	46223be078a9a0e82e700f2cfc1696c8323149eacf1f21c7b82e33334dcfc9c3	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run4/evidence.json	3072	e669da50f49bd0820a2118f5215a1794955c15000161ecd810173be2e2551ed6		unchanged
+exports/2026-11-26-series-rlc-run4/measurements.csv	5833	8205b8f8bde5d18264fbb5a79fe3ec3a33e8bdd57d45d72cfe126e831a3c701d		unchanged
+exports/2026-11-26-series-rlc-run4/run.json	7042	373a3daba94217b398cc8cefd6cea719d1d42f7f844bca62736187bf19e34b08	33b9702bb47900c797e6ea3c703221637a42b7b3f30a3103e5ee58ca70856732	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run5/evidence.json	3073	ba7f83cadb06d14bae48d1832b9f1dbef4e1c8bca0f1b9d79ac74e4950e2196b		unchanged
+exports/2026-11-26-series-rlc-run5/measurements.csv	5605	36d24e464fa2788827316c743d1dc2e01da4ec6b24a9887eccc298c7ecd7c76a		unchanged
+exports/2026-11-26-series-rlc-run5/run.json	7033	ef812ab296b8c9f229d4343a75cdb3d022aeceb8d11d3e6d7339e716c73cdb83	e8ff2143ace334bca3697aa54529bb36c5475439e6dae011db6d43a107d986f4	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run6/evidence.json	3073	1c34eff178bcbe2b0b227ed2a96bc4d62e06e62d1920167b50f29c5f75c41692		unchanged
+exports/2026-11-26-series-rlc-run6/measurements.csv	5610	d8943ed433202f0d7d745095f2c486c9ebfb829e393b9176792e00b0fd279e2a		unchanged
+exports/2026-11-26-series-rlc-run6/run.json	7030	728def82ecceff971a2780b64545397c74fd64319b8c1ab9c0398a037f862157	34410d869e8b26f8cfb65aefcb6c97f79a5955484edbc3122ca20620434d7f57	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run7/evidence.json	3073	dafad68ebefe1cb48a6b2405fde7062ee80225733e5cecaad2345c1a4933068d		unchanged
+exports/2026-11-26-series-rlc-run7/measurements.csv	5610	d156a49de281dd10b9e517aaf9d0cafc5cd2268b53365fa849b58dd3fbff56d6		unchanged
+exports/2026-11-26-series-rlc-run7/run.json	7032	c538fbec2faa38d1d41e494613c4b297ed13c12bccd44a6e6d4c9febd7e2f4a6	098cf1475f9f026b2cc65674a804e7370b65002656c5e383d23f1b9e37a9f705	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run8/evidence.json	3073	7cc690f4881c880749d95d2d27a08b68a4bee59a7f87f464cbb0b05a33ee0b58		unchanged
+exports/2026-11-26-series-rlc-run8/measurements.csv	5611	894adec2c08ba9445b044e32c9b0e0e9ba3301cfbb1774160f67183b2b938cb8		unchanged
+exports/2026-11-26-series-rlc-run8/run.json	7037	7a56c15fbf391cddadf4a40e50c4c2807662872d2591c37f4017042d075f3951	a1583e43cf07350be4413f501634317ae094ee0024265c31db4ed639cedfee45	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc-run9/evidence.json	3073	39203ddcafc6c6b497d2bbe223d1e2610392bb95483678a8d5ff31869049712e		unchanged
+exports/2026-11-26-series-rlc-run9/measurements.csv	5606	1ced27447cd6b2ddd510822eabfd0f7c7d7145cda853cdd80abc9a538940d240		unchanged
+exports/2026-11-26-series-rlc-run9/run.json	7035	72db66afac10a254609478fc6089739d4048ac4d2e780c2a7f9d5e98b601efc0	a188ca76d48e88b801fb35353177c52401a638933b73be5019006ca870e5711d	field replaced: run.device.serial = AD3-001
+exports/2026-11-26-series-rlc/evidence.json	3072	b1730a4b4744fde6460ba44e98f70ccf0c4753b81f4e7a3a1f50ea52fd3769af		unchanged
+exports/2026-11-26-series-rlc/measurements.csv	5607	85dbd8c443b87f2a995da99fc22067c7cdba70499ee1f1b59747caf360d134a8		unchanged
+exports/2026-11-26-series-rlc/raw.csv	1609342	288594ae368e2e8fc548b83e6cc8185b590479a3a2ffe0ecb98008d8d5ea1da8	af1ba8c40a2fa3ef40f85bcfe457ab625ee9602f343924950a213697c646a76b	rows with protocol in frequency-response
+exports/2026-11-26-series-rlc/run.json	7030	ef9790ae3834f175829ccce648c488bcd6ee116bdc4ab325ac39fe94fa876b5b	9fe7b834374d9ee9de432dce2ee0d82f309b04c23c29a7b5b348da513464a618	field replaced: run.device.serial = AD3-001

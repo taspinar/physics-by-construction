@@ -724,3 +724,111 @@ def test_the_driver_hook_wraps_only_the_simulated_bench_and_keeps_its_mode():
     for mode in (RECORDED, LIVE):
         with pytest.raises(ValueError, match="only the simulated driver"):
             make_instrument(PLAN, mode, wrap_driver=CallLog)
+
+
+# -- the bench conditions of a live campaign (F145 part 3) ----------------------------
+
+
+def _live_replay(conditions: dict[str, float] | None):
+    """A recorded LED-pair run of the bench sessions behind a driver that
+    says it is live: the live mode's path without a device."""
+    from pbc.data import SAMPLES_DIR
+    from pbc.instruments.recorded import RecordedBench
+
+    folder = SAMPLES_DIR / "ad3-bench-2026-11" / "exports" / "2026-11-26-led-pair"
+    sample, plan, _ = lab.read_campaign_export(folder)
+
+    class Live(RecordedBench):
+        mode = LIVE
+
+    driver = Live(sample, sequential=True)
+    if conditions is not None:
+        readings = iter([dict(conditions), {k: v + 1 for k, v in conditions.items()}])
+        driver.conditions = lambda: next(readings)
+    return plan, driver
+
+
+def test_a_live_campaign_records_the_bench_and_the_devices_conditions(tmp_path):
+    plan, driver = _live_replay({"die_temperature_c": 40.0, "usb_voltage_v": 5.0})
+    result = lab.run_campaign(
+        plan,
+        tmp_path / "live",
+        mode=LIVE,
+        driver=driver,
+        confirmed=True,
+        bench={"plugged_in": "2026-11-26T17:08+01:00", "room_temperature_c": 19.0},
+    )
+    configuration = json.loads((tmp_path / "live" / "run.json").read_text())["run"][
+        "configuration"
+    ]
+    assert configuration["bench"] == {
+        "plugged_in": "2026-11-26T17:08+01:00",
+        "room_temperature_c": 19.0,
+    }
+    assert configuration["conditions_at_start"] == {
+        "die_temperature_c": 40.0,
+        "usb_voltage_v": 5.0,
+    }
+    assert configuration["conditions_at_end"]["die_temperature_c"] == 41.0
+    assert result.segment.status == "complete"
+
+
+def test_absent_bench_conditions_are_recorded_as_not_recorded(tmp_path):
+    plan, driver = _live_replay(None)
+    lab.run_campaign(plan, tmp_path / "live", mode=LIVE, driver=driver, confirmed=True)
+    configuration = json.loads((tmp_path / "live" / "run.json").read_text())["run"][
+        "configuration"
+    ]
+    assert configuration["bench"] == {
+        "plugged_in": lab.NOT_RECORDED,
+        "room_temperature_c": lab.NOT_RECORDED,
+    }
+    # A driver without a monitor records no device conditions.
+    assert "conditions_at_start" not in configuration
+
+
+def test_only_a_live_campaign_records_bench_conditions(tmp_path):
+    result = lab.run_campaign(
+        LED, tmp_path / "sim", confirmed=True, bench={"room_temperature_c": 21.0}
+    )
+    configuration = json.loads(result.files["run"].read_text())["run"]["configuration"]
+    assert not {"bench", "conditions_at_start"} & set(configuration)
+
+
+def test_the_bench_table_of_a_plan_file_and_the_command_line(tmp_path, monkeypatch):
+    path = tmp_path / "plan.toml"
+    path.write_text(
+        '[campaign]\ncircuit = "led-pair"\nprotocols = ["amplitude-response"]\n'
+        '[bench]\nplugged_in = "13:10 local"\n'
+    )
+    assert lab.load_bench(path) == {"plugged_in": "13:10 local"}
+    assert lab.load_plan(path)[0].circuit == LED_PAIR
+    path.write_text(path.read_text() + "humidity = 40\n")
+    with pytest.raises(ValueError, match="unknown keys of \\[bench\\]: humidity"):
+        lab.load_bench(path)
+    with pytest.raises(ValueError, match="unknown bench conditions"):
+        lab.bench_conditions({"humidity": 40})
+    # The command line passes both, over the table, to run_campaign.
+    seen = {}
+
+    def fake_run(*args, **kwargs):
+        seen.update(kwargs["bench"])
+        raise Refused("stop here")
+
+    monkeypatch.setattr(lab, "run_campaign", fake_run)
+    from pbc.products.physics_lab.__main__ import main
+
+    path.write_text(path.read_text().replace("humidity = 40\n", ""))
+    code = main(
+        [
+            "campaign",
+            "--plan",
+            str(path),
+            "--out",
+            str(tmp_path / "out"),
+            "--room-temperature",
+            "19.5",
+        ]
+    )
+    assert code == 1
+    assert seen == {"plugged_in": "13:10 local", "room_temperature_c": 19.5}
