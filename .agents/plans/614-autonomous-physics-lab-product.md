@@ -555,4 +555,4 @@ The page raised a question it could not answer: whether the two protocols agree 
 - f0 agrees between the protocols in 25 of 27 campaigns, not in all (`2026-11-25-series-rlc` 2.91 combined s.e., `2026-11-26-series-rlc-run16` 2.14).
 - The LED session's plug-in note (about 17:08 local) is after LED run 1's recorded start (16:07:48 UTC), so no minutes after plug-in are computed for the LED runs.
 - The pilot's recorded f0 equals its −90° crossing interpolated in log frequency (47,008.7 Hz), so the crossing is the quantity comparable with the campaigns.
-- The live measurement tables hold numbers from full-precision samples; a replay from `raw.csv` (12 significant digits) reproduces them to 1e-9 and the evaluations exactly.
+- The live measurement tables hold numbers from full-precision samples; a replay from `raw.csv` (12 significant digits) reproduces them to 1e-9 and the evaluations exactly on the recording machine; CI's Linux gave fits that differ by up to 3e-8 relative (the first two CI runs of the pull request failed on the exact comparison), so the tests compare the evaluations to `agent_campaign.TOLERANCE` (1e-6).

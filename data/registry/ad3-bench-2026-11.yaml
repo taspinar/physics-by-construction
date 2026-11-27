@@ -581,7 +581,7 @@ decision:
   reasons:
   - 'Real files inspected: 29 exports, every acquisition valid; the replay of the sampled frequency response
     (31 records, the plan narrowed to that protocol) and of both LED runs by the product''s recorded adapter gives
-    the exports'' recorded results exactly (tests/unit/test_data_ad3_bench_2026_11.py).'
+    the exports'' recorded results to a relative 1e-6 (tests/unit/test_data_ad3_bench_2026_11.py).'
   - 'Published as measured, with the failed checks: the evaluator''s verdict is false in all 29 campaigns (the two
     RLC protocols disagree on Q in every campaign; the LED pair''s held-out check fails in both runs).'
   - 'The owner''s own measurements under CC BY 4.0 by the owner''s decisions of 2026-11-25, 2026-11-26 and

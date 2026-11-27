@@ -18,7 +18,7 @@ from pbc.data import REGISTRY_DIR, SAMPLES_DIR
 from pbc.data import publish as packager
 from pbc.data.reference import ad3_bench_2026_11 as bench
 from pbc.data.reference import ad3_rlc_pilot as pilot_reference
-from pbc.products.physics_lab import lab
+from pbc.products.physics_lab import agent_campaign, lab
 
 SAMPLE = SAMPLES_DIR / bench.DATASET
 ROOT = SAMPLES_DIR.parents[1]
@@ -160,6 +160,28 @@ def same_table(replayed: list[dict[str, str]], recorded: list[dict[str, str]]) -
             assert float(a[key]) == pytest.approx(number, rel=1e-9, abs=1e-12), key
 
 
+def same_evaluation(replayed, recorded, where: str = "evaluation") -> None:
+    """The same structure, words, and counts; the numbers to the tolerance
+    the product uses for a replay on another platform
+    (``agent_campaign.TOLERANCE``, 1e-6): the standard errors of the
+    nonlinear fits come from a finite-difference Jacobian, and those agree
+    between the machine that recorded the run (macOS) and CI's Linux to
+    about eight digits, not to round-off."""
+    if isinstance(recorded, dict):
+        assert isinstance(replayed, dict) and replayed.keys() == recorded.keys(), where
+        for key, value in recorded.items():
+            same_evaluation(replayed[key], value, f"{where}.{key}")
+    elif isinstance(recorded, list):
+        assert isinstance(replayed, list) and len(replayed) == len(recorded), where
+        for index, value in enumerate(recorded):
+            same_evaluation(replayed[index], value, f"{where}[{index}]")
+    elif isinstance(recorded, float) and not isinstance(recorded, bool):
+        tolerance = agent_campaign.TOLERANCE
+        assert replayed == pytest.approx(recorded, rel=tolerance, abs=tolerance), where
+    else:
+        assert replayed == recorded, where
+
+
 def replay(folder: Path, out: Path, protocols: tuple[str, ...] | None = None):
     sample, plan, mode = lab.read_campaign_export(folder)
     assert mode == "live"
@@ -179,12 +201,12 @@ def test_the_replay_reproduces_the_sampled_frequency_response(tmp_path):
     """The first RLC campaign of 2026-11-26, its frequency-response records
     replayed by the recorded adapter with the plan narrowed to that
     protocol (the adaptive route measures it first): the same 31 settings in
-    the same order, and the recorded fit exactly."""
+    the same order, and the recorded fit to the replay's tolerance."""
     folder = SAMPLE / bench.EXPORTS / bench.RLC_SAMPLE
     result = replay(folder, tmp_path / "rlc", ("frequency-response",))
     assert result.segment.status == "complete"
     recorded = bench.read_run(folder)["evaluation"]["frequency-response"]
-    assert result.evaluation["frequency-response"] == recorded
+    same_evaluation(result.evaluation["frequency-response"], recorded)
     table = [
         r
         for r in bench.read_measurements(folder)
@@ -200,11 +222,12 @@ def test_the_replay_reproduces_the_sampled_frequency_response(tmp_path):
 @pytest.mark.parametrize("name", bench.LED_RUNS)
 def test_the_replay_reproduces_both_led_runs(tmp_path, name):
     """Each LED-pair run replayed whole: the recorded evaluation (points,
-    characteristic, held-out check) and the measurement table exactly."""
+    characteristic, held-out check) to the replay's tolerance, and the
+    measurement table."""
     folder = SAMPLE / bench.EXPORTS / name
     result = replay(folder, tmp_path / name)
     assert result.segment.status == "complete"
-    assert result.evaluation == bench.read_run(folder)["evaluation"]
+    same_evaluation(result.evaluation, bench.read_run(folder)["evaluation"])
     same_table(
         bench.read_measurements(tmp_path / name), bench.read_measurements(folder)
     )

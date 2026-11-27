@@ -1202,7 +1202,8 @@ dataset" in `docs/datasets/README.md`).
 
 **The replay in CI.** The product's recorded adapter replays the sampled
 frequency response, with the plan narrowed to that protocol, and both LED
-runs. Each replay gives the export's recorded evaluation exactly
+runs. Each replay gives the export's recorded evaluation to a relative
+1e-6, the product's tolerance for a replay on another machine
 (`tests/unit/test_data_ad3_bench_2026_11.py`). No protocol, protocol version,
 precondition, or envelope changed.
 
