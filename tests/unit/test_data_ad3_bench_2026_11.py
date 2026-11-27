@@ -166,7 +166,9 @@ def same_evaluation(replayed, recorded, where: str = "evaluation") -> None:
     (``agent_campaign.TOLERANCE``, 1e-6): the standard errors of the
     nonlinear fits come from a finite-difference Jacobian, and those agree
     between the machine that recorded the run (macOS) and CI's Linux to
-    about eight digits, not to round-off."""
+    about eight digits, not to round-off. The comparison is relative: the
+    absolute floor (1e-15) only serves a recorded zero, since the smallest
+    recorded numbers are standard errors of order 1e-12."""
     if isinstance(recorded, dict):
         assert isinstance(replayed, dict) and replayed.keys() == recorded.keys(), where
         for key, value in recorded.items():
@@ -177,7 +179,7 @@ def same_evaluation(replayed, recorded, where: str = "evaluation") -> None:
             same_evaluation(replayed[index], value, f"{where}[{index}]")
     elif isinstance(recorded, float) and not isinstance(recorded, bool):
         tolerance = agent_campaign.TOLERANCE
-        assert replayed == pytest.approx(recorded, rel=tolerance, abs=tolerance), where
+        assert replayed == pytest.approx(recorded, rel=tolerance, abs=1e-15), where
     else:
         assert replayed == recorded, where
 
