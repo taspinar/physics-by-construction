@@ -17,6 +17,7 @@ import yaml
 from pbc.data import REGISTRY_DIR, SAMPLES_DIR
 from pbc.data import publish as packager
 from pbc.data.reference import ad3_bench_2026_11 as bench
+from pbc.data.reference import ad3_rlc_pilot as pilot_reference
 from pbc.products.physics_lab import lab
 
 SAMPLE = SAMPLES_DIR / bench.DATASET
@@ -248,6 +249,16 @@ def test_the_recorded_results_are_the_dossiers():
     assert crossing["2026-11-26-series-rlc-run24"] == pytest.approx(48.92, abs=0.005)
     assert [round(crossing[c.name], 2) for c in rlc[:3]] == [50.18, 49.83, 49.67]
     assert all(minutes[c.name] is None for c in rlc[:3])
+    # SA9 and the dossier: every campaign's crossing lies higher than the
+    # pilot's, read from its committed raw samples by the same interpolation.
+    pilot = pilot_reference.response(SAMPLES_DIR / "ad3-rlc-pilot", "capacitor")
+    pilot_crossing = bench.crossing_hz(
+        zip(pilot.frequency_hz, pilot.phase_deg, strict=True)
+    )
+    assert pilot_crossing / 1e3 == pytest.approx(47.01, abs=0.005)
+    assert min(crossing.values()) * 1e3 > pilot_crossing
+    assert min(crossing.values()) * 1e3 / pilot_crossing - 1 > 0.03
+    assert max(crossing.values()) * 1e3 / pilot_crossing - 1 < 0.07
     # The LED pair: the held-out check fails in both runs; the fitted
     # ideality differs between them on nearly the same points.
     assert all(c.held_out_agree is False for c in led)

@@ -180,12 +180,23 @@ def phase_crossing_hz(folder: Path) -> float:
         for r in read_measurements(folder)
         if r["protocol"] == "frequency-response" and r["valid"] == "1"
     ]
-    points = sorted((float(r["frequency_hz"]), float(r["phase_deg"])) for r in rows)
-    for (f1, p1), (f2, p2) in itertools.pairwise(points):
+    points = [(float(r["frequency_hz"]), float(r["phase_deg"])) for r in rows]
+    crossing = crossing_hz(points)
+    if crossing is None:
+        raise ValueError(f"{folder.name}: the phase does not cross -90 degrees")
+    return crossing
+
+
+def crossing_hz(points) -> float | None:
+    """The frequency (Hz) at which (frequency, phase in degrees) points,
+    sorted by frequency here, first cross -90 degrees, linear in log
+    frequency between the two points around the crossing; ``None`` when the
+    phase does not cross."""
+    for (f1, p1), (f2, p2) in itertools.pairwise(sorted(points)):
         if p1 > -90.0 >= p2:
             share = (p1 + 90.0) / (p1 - p2)
             return float(math.exp(math.log(f1) + share * (math.log(f2) - math.log(f1))))
-    raise ValueError(f"{folder.name}: the phase does not cross -90 degrees")
+    return None
 
 
 def minutes_after_plug_in(c: Campaign) -> float | None:
