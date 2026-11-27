@@ -20,7 +20,10 @@ Subcommands:
   adaptive``, ``scripted``, or ``agent`` (replayed from its fixture), in
   ``--mode simulated``, ``recorded`` (``--sample``, a campaign's export),
   or ``live``; ``--resume`` continues an interrupted campaign from its
-  checkpoint in ``--out``;
+  checkpoint in ``--out``; a live campaign records the device's own
+  monitor and the bench conditions ``--plugged-in`` and
+  ``--room-temperature`` (degrees C), over the plan's table ``[bench]``,
+  or "not recorded";
 - ``record-campaign`` (F145): record an agent campaign's trace on the
   simulated bench with ``--provider`` (``openai``, ``anthropic``, or
   ``local``; ``pbc.agents.clients``), the recorder's prices (none for
@@ -185,6 +188,10 @@ def _campaign_commands(commands) -> None:
     campaign.add_argument("--seed", type=int, default=None)
     campaign.add_argument("--circuit-confirmed", action="store_true")
     campaign.add_argument("--resume", action="store_true")
+    # The bench conditions of a live campaign (F145 part 3), over the plan's
+    # table [bench]; recorded as given, "not recorded" when absent.
+    campaign.add_argument("--plugged-in", default=None)
+    campaign.add_argument("--room-temperature", type=float, default=None)
     record = commands.add_parser("record-campaign")
     record.add_argument("--plan", type=Path, required=True)
     record.add_argument("--out", type=Path, required=True)
@@ -294,6 +301,11 @@ def _campaign_main(arguments) -> int:
                     )
         print(f"recorded {len(transcript.steps)} steps to {arguments.out}")
         return 0
+    bench_given = lab.load_bench(arguments.plan)
+    if arguments.plugged_in is not None:
+        bench_given["plugged_in"] = arguments.plugged_in
+    if arguments.room_temperature is not None:
+        bench_given["room_temperature_c"] = arguments.room_temperature
     sample, recorded_live, driver = None, False, None
     if arguments.mode == RECORDED:
         if arguments.sample is None:
@@ -327,6 +339,7 @@ def _campaign_main(arguments) -> int:
             trace=arguments.trace,
             resume_from_checkpoint=arguments.resume,
             on_record=_print_record,
+            bench=bench_given,
         )
     except Refused as reason:
         print(f"refused: {reason}", file=sys.stderr)

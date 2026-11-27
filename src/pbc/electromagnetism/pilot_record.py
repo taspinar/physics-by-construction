@@ -20,7 +20,7 @@ from matplotlib.figure import Figure
 from pbc.data import SAMPLES_DIR
 from pbc.data.figure_provenance import RESIDUAL, role
 from pbc.data.plotting import COLOURS
-from pbc.data.reference import ad3_rlc_pilot
+from pbc.data.reference import ad3_bench_2026_11, ad3_rlc_pilot
 from pbc.figure_language import LINE, MUTED, figsize, figure_style, finish
 from pbc.instruments import RECORDED
 from pbc.products.physics_lab import protocol, workflow
@@ -100,3 +100,23 @@ def replay(out_dir: Path) -> workflow.Result:
     F138's frequency-response protocol: nothing is measured again."""
     config = protocol.load_config(PILOT_INPUT)
     return workflow.run(config, out_dir, mode=RECORDED, sample=PILOT / "capacitor")
+
+
+def bench_sessions() -> dict[str, int]:
+    """The counts the page states of the owner's bench sessions
+    (``ad3-bench-2026-11``), from the exports' recorded results as they are:
+    the series RLC campaigns, those whose two protocols agree on f0 and
+    those whose two protocols differ in Q (k = 2), those the evaluator
+    failed, and the LED-pair runs and those whose held-out check failed.
+    Nothing is replayed or measured."""
+    found = ad3_bench_2026_11.campaigns(SAMPLES_DIR / ad3_bench_2026_11.DATASET)
+    rlc = [c for c in found if c.circuit == "series-rlc"]
+    led = [c for c in found if c.circuit == "led-pair"]
+    return {
+        "rlc": len(rlc),
+        "f0-agree": sum(bool(c.f0_agree) for c in rlc),
+        "q-differ": sum(c.q_agree is False for c in rlc),
+        "rlc-failed": sum(c.verdict is False for c in rlc),
+        "led": len(led),
+        "led-held-out-failed": sum(c.held_out_agree is False for c in led),
+    }

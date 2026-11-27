@@ -1,0 +1,252 @@
+{
+  "product": "physics-lab",
+  "kind": "campaign",
+  "route": "adaptive",
+  "status": "completed",
+  "segment": {
+    "number": 1,
+    "status": "complete",
+    "made": [
+      "m001",
+      "m002",
+      "m003",
+      "m004",
+      "m005",
+      "m006",
+      "m007",
+      "m008",
+      "m009",
+      "m010",
+      "m011",
+      "m012",
+      "m013",
+      "m014",
+      "m015",
+      "m016",
+      "m017",
+      "m018",
+      "m019",
+      "m020",
+      "m021",
+      "m022",
+      "m023",
+      "m024",
+      "m025",
+      "m026",
+      "m027",
+      "m028",
+      "m029",
+      "m030",
+      "m031",
+      "m032",
+      "m033",
+      "m034",
+      "m035",
+      "m036"
+    ],
+    "lost": null,
+    "checkpoint_digest": "16eafed49da6eaba98b4619a10997af4176932e3f08af93f5548477e5ab54529",
+    "output": null,
+    "diagnostics": []
+  },
+  "plan": {
+    "circuit": "series-rlc",
+    "protocols": [
+      "frequency-response",
+      "transient"
+    ],
+    "amplitude_v": 1.0,
+    "low_hz": 5000.0,
+    "high_hz": 200000.0,
+    "sweep_points": 13,
+    "periods": 8,
+    "samples_per_period": 64,
+    "f0_target": 0.002,
+    "square_hz": 1000.0,
+    "transient_rate_hz": 10000000.0,
+    "ringing_max_hz": 200000.0,
+    "min_ringdowns": 5,
+    "q_target": 0.02,
+    "amplitudes_v": [
+      0.2,
+      0.5,
+      1.0,
+      1.4,
+      1.6,
+      1.8,
+      2.0
+    ],
+    "amplitude_frequency_hz": 1000.0,
+    "amplitude_refinements": 2,
+    "series_resistance_ohm": 100.0,
+    "inductance_h": 0.001,
+    "capacitance_f": 1e-08,
+    "budget": 40
+  },
+  "run": {
+    "mode": "live",
+    "device": {
+      "device": "Digilent Analog Discovery 3",
+      "serial": "AD3-001",
+      "sdk": "WaveForms SDK 3.25.1",
+      "library": "/Library/Frameworks/dwf.framework/dwf",
+      "calibration": "the device's factory calibration, not adjusted; channel 1 (source) on the 5 V range, channel 2 (response) on the 50 V range, both against ground; the generator W1, a sine with offset 0 V, or a square wave between 0 V and the amplitude (amplitude and offset each half of it)",
+      "on_close": "stop",
+      "frequency_set_hz": "1000"
+    },
+    "configuration": {
+      "plan": {
+        "circuit": "series-rlc",
+        "protocols": [
+          "frequency-response",
+          "transient"
+        ],
+        "amplitude_v": 1.0,
+        "low_hz": 5000.0,
+        "high_hz": 200000.0,
+        "sweep_points": 13,
+        "periods": 8,
+        "samples_per_period": 64,
+        "f0_target": 0.002,
+        "square_hz": 1000.0,
+        "transient_rate_hz": 10000000.0,
+        "ringing_max_hz": 200000.0,
+        "min_ringdowns": 5,
+        "q_target": 0.02,
+        "amplitudes_v": [
+          0.2,
+          0.5,
+          1.0,
+          1.4,
+          1.6,
+          1.8,
+          2.0
+        ],
+        "amplitude_frequency_hz": 1000.0,
+        "amplitude_refinements": 2,
+        "series_resistance_ohm": 100.0,
+        "inductance_h": 0.001,
+        "capacitance_f": 1e-08,
+        "budget": 40
+      },
+      "route": "adaptive",
+      "seed": 0,
+      "protocols": {
+        "frequency-response": "f145-frequency-response-1",
+        "transient": "f145-transient-1"
+      },
+      "segment": 1
+    },
+    "units": {
+      "frequency": "Hz",
+      "amplitude": "V",
+      "time": "s",
+      "source": "V",
+      "response": "V",
+      "gain": "dimensionless (V/V)",
+      "phase": "degrees",
+      "decay rate": "1/s",
+      "h3": "dimensionless (V/V)"
+    },
+    "processing": [
+      "every capture passes the quality gate (pbc.products.physics_lab.quality) before a number is read; an invalid one is recorded and never fitted",
+      "frequency response: amplitude and phase of each channel by a least-squares sine fit over the valid samples (pbc.electromagnetism.measurement.fit_sine); f0, Q, and k with standard errors from a weighted fit of the second-order response to the log-gain and the phase (pbc.products.physics_lab.resonance)",
+      "transient: the ring-down after the first rising edge of the square wave, fitted by v_inf + e^(-alpha t)(a cos omega_d t + b sin omega_d t); f0 and Q with standard errors (pbc.products.physics_lab.ringdown); repetitions combined by their weighted mean, widened by the Birge ratio",
+      "amplitude response: the fundamental and the odd harmonics of the response fitted together; the characteristic v = n V_T asinh(i / 2 I_s) fitted to the samples above 0.5 mA (pbc.products.physics_lab.nonlinear)"
+    ],
+    "started": "2026-11-26T13:38:46Z",
+    "finished": "2026-11-26T13:38:47Z",
+    "new_experiment": true,
+    "operations": {
+      "accepted": 72,
+      "refused": 0
+    },
+    "label": "live measurement on the learner's own instrument"
+  },
+  "execution_modes": [
+    "live"
+  ],
+  "evaluation": {
+    "acquisitions": 36,
+    "simulator_checks": {},
+    "agreements": [
+      {
+        "quantity": "f0_hz",
+        "first": "frequency-response",
+        "second": "transient",
+        "a": {
+          "value": 49076.688262206946,
+          "se": 94.7926259959205
+        },
+        "b": {
+          "value": 49065.350398016395,
+          "se": 45.17844594400281
+        },
+        "difference": 11.337864190551045,
+        "combined_se": 105.00825644261334,
+        "sigmas": 0.10797116888372629,
+        "coverage": 2.0,
+        "agree": true
+      },
+      {
+        "quantity": "q",
+        "first": "frequency-response",
+        "second": "transient",
+        "a": {
+          "value": 1.4775198084765286,
+          "se": 0.01398658051143761
+        },
+        "b": {
+          "value": 1.6446017316313315,
+          "se": 0.005280124915822811
+        },
+        "difference": -0.16708192315480286,
+        "combined_se": 0.014950055301891668,
+        "sigmas": 11.17600703013196,
+        "coverage": 2.0,
+        "agree": false
+      }
+    ],
+    "frequency-response": {
+      "valid_points": 31,
+      "fit": {
+        "f0_hz": {
+          "value": 49076.688262206946,
+          "se": 94.7926259959205
+        },
+        "q": {
+          "value": 1.4775198084765286,
+          "se": 0.01398658051143761
+        },
+        "k": {
+          "value": 1.0105912431820268,
+          "se": 0.0073954710028972925
+        },
+        "reduced_chi2": 3624.2179101768947,
+        "points": 31
+      }
+    },
+    "transient": {
+      "valid": 5,
+      "invalid": 0,
+      "f0_hz": {
+        "value": 49065.350398016395,
+        "se": 45.17844594400281,
+        "birge": 2.4201173593235006
+      },
+      "q": {
+        "value": 1.6446017316313315,
+        "se": 0.005280124915822811,
+        "birge": 2.0941096053351007
+      }
+    }
+  },
+  "verdict": false,
+  "invalid": [],
+  "candidate_answer": null,
+  "comparison": null,
+  "evidence": {
+    "file": "evidence.json",
+    "summary": "Attempts: 1, correct 0 of 1\n  completed: 1\n  failed: 0\n  inconclusive: 0\n  invalid: 0\n  missing: 0\nadaptive-segment-1 [adaptive, cycle 1]: completed, not correct, candidate's report none (unverified) (complete after 36 measurements)\nclaim campaign: failed (this circuit, live mode, seed 0)"
+  }
+}

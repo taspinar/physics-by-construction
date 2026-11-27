@@ -1,0 +1,597 @@
+id: ad3-bench-2026-11
+title: F145 bench sessions, 27 series RLC campaigns and 2 LED-pair campaigns on an Analog Discovery 3, 2026-11-25
+  and 2026-11-26
+source:
+  url: https://github.com/taspinar/physics-by-construction/issues/614#issuecomment-7210910945
+  creator: Ahmet Taspinar (the project's owner, at the bench), with the campaign command of the Autonomous Physics
+    Lab (pbc.products.physics_lab, F145) run by the supervising agent session
+  version: 'Version 1.0.0 of the packaged dataset (data/publish/ad3-bench-2026-11.toml): the exports of the 3 series
+    RLC campaigns of 2026-11-25, the 24 of 2026-11-26, and the 2 LED-pair campaigns of 2026-11-26, as the product
+    wrote them, with the device serial replaced by AD3-001'
+  accessed: &accessed 2026-11-27
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'The owner''s decisions on Issue #614: CC BY 4.0 for the series RLC runs of bench session 1 (2026-11-25,
+      https://github.com/taspinar/physics-by-construction/issues/614#issuecomment-7173989078, covering the runs of 2026-11-26), for both LED-pair runs (https://github.com/taspinar/physics-by-construction/issues/614#issuecomment-7197996080),
+      and every campaign published with its failed checks (https://github.com/taspinar/physics-by-construction/issues/614#issuecomment-7210910945); the terms at
+      https://creativecommons.org/licenses/by/4.0/legalcode permit reproducing and sharing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'The owner''s decisions on Issue #614 (issuecomment-7173989078, -7197996080, -7210910945), CC BY 4.0;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits sharing the material in whole
+      or in part; the split between the repository and the archive is the owner''s decision 2 of 2026-11-27'
+  publication_of_figures:
+    answer: permitted
+    source: 'The owner''s decisions on Issue #614 (issuecomment-7173989078, -7197996080), CC BY 4.0;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits producing and sharing adapted
+      material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'The owner''s decisions on Issue #614 (issuecomment-7173989078, -7197996080), CC BY 4.0;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the creator, the licence, a link,
+      and an indication of changes (the device identifier, MANIFEST.tsv)'
+  attribution: Taspinar, A., 'Series RLC and LED-pair campaigns on an Analog Discovery 3, bench sessions of 2026-11-25
+    and 2026-11-26', version 1.0.0, https://github.com/taspinar/physics-by-construction/issues/614, CC BY 4.0; the device serial replaced by AD3-001, the raw samples of
+    the repository a subset (MANIFEST.tsv).
+  figure_credit:
+    short: 'Data: A. Taspinar, F145 bench sessions (Analog Discovery 3), 2026-11, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creator, the licence, and
+      a link go with the shared material, so a figure saved without its page carries them on its face'
+artifacts:
+- name: run.json
+  type: processed-measured
+  description: The run record of each campaign as the product exported it (pbc.products.physics_lab.lab.export)
+    - the plan, the device (serial replaced by AD3-001), the configuration, the units, the processing, the start
+    and end times, the segment, and the evaluator's results recomputed from raw.csv during the live run (f0 and
+    Q of both protocols with standard errors, their agreement, the LED characteristic and its held-out check, the
+    verdict). The results are the product's processing, as recorded, not re-computed for this card.
+- name: measurements.csv
+  type: processed-measured
+  description: One row per acquisition (protocol, stage, setting, basis, valid, note, and the numbers read from
+    it - gain and phase with standard errors, or the ring-down's fit, or the LED pair's gain and third harmonic).
+- name: evidence.json
+  type: processed-measured
+  description: The evidence log of each campaign (task, hypothesis, assumptions, protocol versions, the code and
+    configuration digests, the execution mode, the attempt, the evaluation, the claim). The SHA-256 of raw.csv in
+    it is the original file's.
+- name: raw.csv
+  type: raw-measured
+  description: Every sample of every acquisition (record, protocol, stage, valid, waveform, amplitude, frequency,
+    asked rate, time, channel 1 at W1, channel 2 at the response node), in volts as the device returned them.
+    Committed for the first series RLC campaign of 2026-11-26 (its 31 frequency-response records only, no
+    ring-downs) and both LED-pair campaigns; complete for every campaign in the archive.
+calibration: 'The device''s factory calibration, not adjusted (each run record says so). Channel 1 on the 5 V range,
+  channel 2 on the 50 V range, both against ground; the relative gain and phase of the two ranges are not documented
+  and were not measured. The parts are nominal (R 100 ohm, L 1 mH, C 10 nF; the LED pair two red 5 mm LEDs behind
+  100 ohm); no part was measured with a multimeter (reserved for F155, Issue #619).'
+schema: 'Per campaign, under exports/<export>/: run.json (one JSON object: product, kind, route, status, segment, plan,
+  run, execution_modes, evaluation, verdict, invalid, candidate_answer, comparison, evidence), measurements.csv (the
+  columns record, protocol, stage, setting, basis, valid, note, and the numbers of the protocol), evidence.json (the
+  evidence log, format 1). raw.csv: record, protocol, stage, valid, waveform, amplitude_v, frequency_hz,
+  asked_rate_hz, t_s, source_v, response_v. MANIFEST.tsv: path, bytes, sha256, original_sha256, derivation.'
+units: 'Stated in run.json: frequency Hz, amplitude V, time s, source and response V, gain V/V, phase degrees, decay
+  rate 1/s, third harmonic V/V.'
+cadence: 'Series RLC: 36 or 37 acquisitions per campaign (13 sweep points from 5 kHz to 200 kHz, 18 refinements
+  around the phase crossing, the ring-downs of a 1 kHz square wave at 10 MS/s, 15,001 samples each); 513 samples
+  per sweep point. LED pair: 13 amplitudes from 0.2 V to 2.0 V at 1 kHz. Three campaigns on 2026-11-25 between
+  19:56 and 20:04 UTC; 24 on 2026-11-26 from 12:14 to 13:39 UTC (ten of them within one minute, then one every
+  five minutes); the LED pair at 16:07 and 16:13 UTC.'
+coordinates: 'One breadboard series RLC circuit, W1 -> 100 ohm -> coil -> node A -> capacitor -> ground, unchanged
+  since the pilot of 2026-11-22 by the owner''s statement; and two red LEDs in anti-parallel behind 100 ohm.
+  Device AD3-001 (an Analog Discovery 3; the serial replaced), WaveForms SDK 3.25.1. Plug-in and room: 2026-11-25
+  not recorded; 2026-11-26 plugged in at about 12:10 UTC, room about 20 degrees C (RLC); room 19 degrees C (LED).'
+masks: 'None: every acquisition is kept, valid or not; no campaign was left out.'
+uncertainty: 'The standard errors the product recorded (the weighted fit of the frequency response; the scatter of
+  the ring-downs, with their Birge ratio; the LED characteristic''s fit). The reduced chi-square of the
+  frequency-response fit is 3,450 to 5,500, so the model does not describe the points within their noise and
+  those standard errors understate the spread. The factory calibration error and the channel mismatch are unknown
+  and not included.'
+size:
+  description: 'The repository holds 93 files, 3,335,854 bytes (run.json, measurements.csv and evidence.json of all
+    29 campaigns, three raw.csv files, MANIFEST.tsv, README.md, CITATION.cff). The archive holds all 259 files of
+    the 29 exports, 38 MB compressed (about 346 MB unpacked).'
+format: CSV (plain text), JSON, Markdown, SVG; the archive a ZIP of the same
+reader: pbc.data.reference.ad3_bench_2026_11 (campaigns, phase_crossing_hz, the csv and json modules of the standard
+  library); the replay as a recorded sample is pbc.products.physics_lab.lab.read_campaign_export. No new dependency.
+archive:
+  file: ad3-bench-2026-11-1.0.0.zip
+  bytes: 38048799
+  sha256: c47d840007c5c5762933417d522a4ab1523e87e353cfdde11b0c24cfcc18286d
+  doi: 10.5281/zenodo.24578221 (https://doi.org/10.5281/zenodo.24578221; reserved by the owner in the Zenodo draft on 2026-11-27, also the field doi of data/publish/ad3-bench-2026-11.toml)
+  note: Documentation only; no check, test, or build step reads the archive or Zenodo. Made by pbc.data.publish
+    from the declaration; the same exports give the same bytes.
+samples:
+- path: CITATION.cff
+  sha256: 521a9a07913de5213b0e6062d88c1bedcc15527b1ece82d9ef78fd5a16b77cca
+  bytes: 615
+  derivation: written by the packager pbc.data.publish from data/publish/ad3-bench-2026-11.toml
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: MANIFEST.tsv
+  sha256: b1ee03b11ace80c484e0a920c80537a5451e3cd3f2b1e37d4adc9c14288a4552
+  bytes: 14801
+  derivation: written by the packager (path, bytes, SHA-256, the original's SHA-256 where changed, and the derivation of every other file)
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: README.md
+  sha256: eea90b0cf67e821d40b1e289c5027b7abd32a7960da1ba0c1335e38875a3bad7
+  bytes: 4408
+  derivation: written by the packager pbc.data.publish from data/publish/ad3-bench-2026-11.toml
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc-run2/evidence.json
+  sha256: 3ef6f84bbf402be8a1a0cbd9d58667d5ef512fd5b9ec29bcac273e285120b367
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc-run2/measurements.csv
+  sha256: 0b70ec125faeac5aeb6db1d418aa863355e231217f1d554920645bdfaf4e40d5
+  bytes: 5613
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc-run2/run.json
+  sha256: 0011103c0cdfe38e9600b721159f92bae42824e4407536da43fabcf232f9dfc0
+  bytes: 7030
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc-run3/evidence.json
+  sha256: 1eeb807b03ba652827aa6fbcd0f4f5abfc24e342095b94149555cc2a243de40d
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc-run3/measurements.csv
+  sha256: 7046693526baba6dc0e63dbadfd625051fe4becd69144ea3863c107dfdb53ba0
+  bytes: 5610
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc-run3/run.json
+  sha256: 0723b8d62c2e878f7dc1871ad3d98003ab89852d0d3cb1f1bdfeabedda1f2742
+  bytes: 7032
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc/evidence.json
+  sha256: 9c55b8aa4ab4647280f5ddbc0bed4f9b859522844df2c4d172c6ff150d594b47
+  bytes: 3070
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc/measurements.csv
+  sha256: 489ad0a4453e937a33b2f86ea16b0ba8025754015c734308ae3f0c3d92933019
+  bytes: 5606
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-25-series-rlc/run.json
+  sha256: ab7ef13b66cebd840daa4bcf6942f9000ecad8ba82f9d224f62adb78bc4f89da
+  bytes: 7023
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair-run2/evidence.json
+  sha256: 31f9d506b5b224abee31e6374e5e528edcd5dc556237164d1f7aa1416d475900
+  bytes: 2972
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair-run2/measurements.csv
+  sha256: 0af8f1dcfc2f79814132c063ad5d0fae553e9fb64555240e12c9e7cdbfc8eb55
+  bytes: 1765
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair-run2/raw.csv
+  sha256: 2f3c81563089ac0a0dc2c713056ba21adb53857ca51f73642969cfcfeda09cf8
+  bytes: 620499
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair-run2/run.json
+  sha256: 7c3eda451262736c9a925edb6b5272988e023aa8141a47c03cbf47dbbcac6c8d
+  bytes: 15978
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair/evidence.json
+  sha256: 244c01cd044d530f950b508328128cf3544440a1db008fe176dc3e4f66728d41
+  bytes: 2972
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair/measurements.csv
+  sha256: 3a8559e89290c01b4faeb5d053b4c271c970f33f6799529e675079708d1ae53c
+  bytes: 1766
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair/raw.csv
+  sha256: 89ae7d229226f064677b97e07153a12497e67d2985b4dec32799885415274a6f
+  bytes: 620432
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-led-pair/run.json
+  sha256: 210e6220384f6df4d35ce0d1929b342a7e92896edd839c2802136fb61a99ccfe
+  bytes: 15913
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run10/evidence.json
+  sha256: 676a576465213447a887f5beb8aaff72f5ca7f3f882bc421a31c6ad19940a450
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run10/measurements.csv
+  sha256: 3a1dfbbd7bbd1fb42c9f50046c1d3e0fd766c135d480e7e35b51e0caf287f5ac
+  bytes: 5604
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run10/run.json
+  sha256: 2e2fcb3cb4861966ed19461ca137566f17b44c40f45ec4160b9fb38908e9c0ee
+  bytes: 7026
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run11/evidence.json
+  sha256: dca2307de181f5c340bff6fd06e977a00781b1200009506ba36fde66d48ce961
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run11/measurements.csv
+  sha256: 884ade8bd0131c169c2d8dce3a0f2e799de95bd028476daaca6565f5f8938593
+  bytes: 5613
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run11/run.json
+  sha256: 77219b29cce284aebcdd8f4ae314f1bdb55f15aa7800898cfe5970e090e0575f
+  bytes: 7028
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run12/evidence.json
+  sha256: 3d6220106b61e38238e27e56f7ac1b35b275591981405e2f22022013d0b4d3ba
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run12/measurements.csv
+  sha256: 5dc7e29b5b53f5980412ba4b6008c8b31b4fe5673954ab084163df8a55bec616
+  bytes: 5609
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run12/run.json
+  sha256: 85ef0287680d0d938911531a7fdad803dab3d71d25b5cf30d01525562fb3332a
+  bytes: 7032
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run13/evidence.json
+  sha256: fa668f9af9bcb89527fff20a4199862f033c7403ceead51d51303ec43c022620
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run13/measurements.csv
+  sha256: 2919e091c6685697be978efe16d5995d6cd9a8715dbc1f8f3ff1ba904f5d9174
+  bytes: 5607
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run13/run.json
+  sha256: 00678d5151b1dff431f3322d3d0d8807bd1406d325c4d5a185b3a7f2cfa557d1
+  bytes: 7036
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run14/evidence.json
+  sha256: d38984a3cbff4c8fd6d8892f724f7d21a4d3d471a26860a976c117c4f5949324
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run14/measurements.csv
+  sha256: 3f454435fde65e1c6cc745d6afe57db02eb44958f7483e22cb9e18487f75fe26
+  bytes: 5601
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run14/run.json
+  sha256: 68900ef6ba84c744d263a8d16e92969ae9a9b085f96b23ea3cee7723fde2c131
+  bytes: 7031
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run15/evidence.json
+  sha256: e24ccfd77341771d4e5c621513ef683fed7a62065be9cec5fd0cd369970c2c2f
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run15/measurements.csv
+  sha256: ae042d2565a2e4ed0ab122bd36b88765ae38bf90a94a2e7fa12f223b10910675
+  bytes: 5608
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run15/run.json
+  sha256: 6d815da84431ac993979b4c084aa874e0f16d0500e8305d46a3c16198bf7107d
+  bytes: 7030
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run16/evidence.json
+  sha256: 6045d31cea7fb29bb1042709ec6063a431003c530a55905d58169aa9bbde973a
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run16/measurements.csv
+  sha256: df442d46906a42f16cf0a31c57d57936441365bd16e54c80b23159d8f6f440ce
+  bytes: 5588
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run16/run.json
+  sha256: bc2eedd542aa00bcbd5aac079b2fa5ed0ec37d26c63fbaaeb3761160010c9d90
+  bytes: 7027
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run17/evidence.json
+  sha256: e028d38530b441c176dfc1f60b93755adaed14d0c4ad1dece0e5c752bafb12b1
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run17/measurements.csv
+  sha256: 1e09ac9ac963cd09c233d6537f0e747d77d19653f48561b3c377be401bdb90a3
+  bytes: 5604
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run17/run.json
+  sha256: 510d565cab1ec67170645cc5fece8591ad0d20720a41dacbaf279965f0b4a860
+  bytes: 7028
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run18/evidence.json
+  sha256: 7e38e8bf087b2ffc54424ec81f353238c76a84e99db2e7124d31813e5d59bdbd
+  bytes: 3071
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run18/measurements.csv
+  sha256: 63c4e934b8ec7b62409317e61442402ddd91a81431b7c4e09cf8cbd0fd7aba2f
+  bytes: 5610
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run18/run.json
+  sha256: 39faabfff09012982e5ed921bc2f1c698eee3a2679ff7035f1bc6914dc9186ab
+  bytes: 7024
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run19/evidence.json
+  sha256: 26ca0f34765ab6ada44d758ce84933e9c64944b377cf5df41f0daaa5de6f57be
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run19/measurements.csv
+  sha256: 8c25faa3b5c9eab439bc133a7fbb6cdadfb6549935892975bfb8ea0c729a5289
+  bytes: 5601
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run19/run.json
+  sha256: 809b94ed8c38f9bb39bb78251d35dff0356eaebade7d313de5ad9e8b440322b0
+  bytes: 7027
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run2/evidence.json
+  sha256: 39516047b5c6497dea36a6348e40d104b679c005b3e91f4303add4807cd625a5
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run2/measurements.csv
+  sha256: 544f7858d7a710c3bd2f857ad648252ab8392db6b8ab35567c875c150d66c5aa
+  bytes: 5597
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run2/run.json
+  sha256: 472f343cb9499feaeab27837b802cfb78c88a39b409263d982c22af754d0d059
+  bytes: 7026
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run20/evidence.json
+  sha256: 8043cbe5a2b20ac7b2c9a8f6617532f03f968bebebc741135b89cf9eefbf06a2
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run20/measurements.csv
+  sha256: f2e859d88b9c3fe4dd63c5c33b834e344ed4141d37f7e518e7faff0665fa40d7
+  bytes: 5610
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run20/run.json
+  sha256: f30aa1b25e1fbbddf6d2999e2815f2335e25a3f87de05a7f97993ecd7cd96d4e
+  bytes: 7034
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run21/evidence.json
+  sha256: 002b62e1d695a5f288e4d3c63017ec01e6e85e53a7707de044f18d31eb0eed8c
+  bytes: 3074
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run21/measurements.csv
+  sha256: bd1b7c755b48625a2d1468d5a6592d09a257a4937adfdf1a53dd629d911f7266
+  bytes: 5606
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run21/run.json
+  sha256: de8edf875db58574c7924fd19300225077c8d3a71a9c4d33d8a89ac1400ed744
+  bytes: 7033
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run22/evidence.json
+  sha256: 4c43466840afb90a2efd8df654ca28026d8798616e5c061f9f267fc6ae1cb7e4
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run22/measurements.csv
+  sha256: 2f6f4f2ef5704b57ef501191d6356c0f166ff4a494e52cf9d799349524835e3e
+  bytes: 5614
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run22/run.json
+  sha256: a5ddef7e636762abc4a8449ed7efe753e6e18cc86196a36115e1d04ff0afd47f
+  bytes: 7031
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run23/evidence.json
+  sha256: 16b2ac5a143a0ef64e9ae8b21000233454abf3364b31c7ebc61ad5b559368807
+  bytes: 3071
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run23/measurements.csv
+  sha256: 5dc08eb0c30e3247a8d94cf0626c68a498df9f7c34e993059c3e8ed54db5b503
+  bytes: 5614
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run23/run.json
+  sha256: 2861425d627f30a8ae32ea8dc5fe7f5af2ec377e9968f7603305b6e0117d9198
+  bytes: 7033
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run24/evidence.json
+  sha256: 8b56ad591f2280090584d059f00f2b2b03c30bed067815945a62cd917b8cfe92
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run24/measurements.csv
+  sha256: 3b21694e72ccd35936b9e737ae3adfd59f0d108ee41755f96ed848acee823d31
+  bytes: 5604
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run24/run.json
+  sha256: 25fd720de59541e6eb6843a5e8650fb1f58e5b422f44a52e4953aa235f2197b9
+  bytes: 7035
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run3/evidence.json
+  sha256: 3c35f7b4e074f2290d0c5488eeceb6a81d8d4e1881916514c6c819208fafd42a
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run3/measurements.csv
+  sha256: a014efa5de5654a0291af8efe2bbc8ebef071879b72059c66981d1e40a974780
+  bytes: 5614
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run3/run.json
+  sha256: d6ca46c532158ccd893cd350be6cffd09c39fe9e538861386d7138e1a2dba335
+  bytes: 7034
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run4/evidence.json
+  sha256: e669da50f49bd0820a2118f5215a1794955c15000161ecd810173be2e2551ed6
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run4/measurements.csv
+  sha256: 8205b8f8bde5d18264fbb5a79fe3ec3a33e8bdd57d45d72cfe126e831a3c701d
+  bytes: 5833
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run4/run.json
+  sha256: 373a3daba94217b398cc8cefd6cea719d1d42f7f844bca62736187bf19e34b08
+  bytes: 7042
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run5/evidence.json
+  sha256: ba7f83cadb06d14bae48d1832b9f1dbef4e1c8bca0f1b9d79ac74e4950e2196b
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run5/measurements.csv
+  sha256: 36d24e464fa2788827316c743d1dc2e01da4ec6b24a9887eccc298c7ecd7c76a
+  bytes: 5605
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run5/run.json
+  sha256: ef812ab296b8c9f229d4343a75cdb3d022aeceb8d11d3e6d7339e716c73cdb83
+  bytes: 7033
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run6/evidence.json
+  sha256: 1c34eff178bcbe2b0b227ed2a96bc4d62e06e62d1920167b50f29c5f75c41692
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run6/measurements.csv
+  sha256: d8943ed433202f0d7d745095f2c486c9ebfb829e393b9176792e00b0fd279e2a
+  bytes: 5610
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run6/run.json
+  sha256: 728def82ecceff971a2780b64545397c74fd64319b8c1ab9c0398a037f862157
+  bytes: 7030
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run7/evidence.json
+  sha256: dafad68ebefe1cb48a6b2405fde7062ee80225733e5cecaad2345c1a4933068d
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run7/measurements.csv
+  sha256: d156a49de281dd10b9e517aaf9d0cafc5cd2268b53365fa849b58dd3fbff56d6
+  bytes: 5610
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run7/run.json
+  sha256: c538fbec2faa38d1d41e494613c4b297ed13c12bccd44a6e6d4c9febd7e2f4a6
+  bytes: 7032
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run8/evidence.json
+  sha256: 7cc690f4881c880749d95d2d27a08b68a4bee59a7f87f464cbb0b05a33ee0b58
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run8/measurements.csv
+  sha256: 894adec2c08ba9445b044e32c9b0e0e9ba3301cfbb1774160f67183b2b938cb8
+  bytes: 5611
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run8/run.json
+  sha256: 7a56c15fbf391cddadf4a40e50c4c2807662872d2591c37f4017042d075f3951
+  bytes: 7037
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run9/evidence.json
+  sha256: 39203ddcafc6c6b497d2bbe223d1e2610392bb95483678a8d5ff31869049712e
+  bytes: 3073
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run9/measurements.csv
+  sha256: 1ced27447cd6b2ddd510822eabfd0f7c7d7145cda853cdd80abc9a538940d240
+  bytes: 5606
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc-run9/run.json
+  sha256: 72db66afac10a254609478fc6089739d4048ac4d2e780c2a7f9d5e98b601efc0
+  bytes: 7035
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc/evidence.json
+  sha256: b1730a4b4744fde6460ba44e98f70ccf0c4753b81f4e7a3a1f50ea52fd3769af
+  bytes: 3072
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc/measurements.csv
+  sha256: 85dbd8c443b87f2a995da99fc22067c7cdba70499ee1f1b59747caf360d134a8
+  bytes: 5607
+  derivation: the export's file, byte for byte
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc/raw.csv
+  sha256: 288594ae368e2e8fc548b83e6cc8185b590479a3a2ffe0ecb98008d8d5ea1da8
+  bytes: 1609342
+  derivation: the header and the rows with protocol frequency-response of the export's raw.csv, line by line (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+- path: exports/2026-11-26-series-rlc/run.json
+  sha256: ef9790ae3834f175829ccce648c488bcd6ee116bdc4ab325ac39fe94fa876b5b
+  bytes: 7030
+  derivation: the export's file with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_bench_2026_11.py::test_ad3_bench_2026_11_sample_parses
+estimates:
+  runtime: 'Reference figure: about 3 s with the interpreter start. The CI replay of the sampled frequency response
+    and of both LED runs: a few seconds.'
+  memory: About 150 MB peak resident for the figure.
+  page_payload: 3.3 MB committed, none of it sent to a reader's browser.
+  ci: 'Offline: the committed files; the replay needs no device, no SDK, and no network.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: 29 exports, every acquisition valid; the replay of the sampled frequency response
+    (31 records, the plan narrowed to that protocol) and of both LED runs by the product''s recorded adapter gives
+    the exports'' recorded results to a relative 1e-6 (tests/unit/test_data_ad3_bench_2026_11.py).'
+  - 'Published as measured, with the failed checks: the evaluator''s verdict is false in all 29 campaigns (the two
+    RLC protocols disagree on Q in every campaign; the LED pair''s held-out check fails in both runs).'
+  - 'The owner''s own measurements under CC BY 4.0 by the owner''s decisions of 2026-11-25, 2026-11-26 and
+    2026-11-27 on Issue #614.'
+dossier: docs/datasets/ad3-bench-2026-11.md
+reference_module: ad3_bench_2026_11
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'F145 bench sessions, series RLC and LED pair on an Analog Discovery 3 (Issue #614)'
+  kind: campaign exports (run records, measurement tables, evidence logs, raw samples) of the project's own live
+    campaigns

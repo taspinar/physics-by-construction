@@ -22,6 +22,7 @@ Cards added after the survey, for the measured-data labs:
 <!-- generated: later-table -->
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
+| F145 bench sessions, series RLC and LED pair on an Analog Discovery 3 (Issue #614) | campaign exports (run records, measurement tables, evidence logs, raw samples) of the project's own live campaigns | **go** (2026-11-27) | [ad3-bench-2026-11](ad3-bench-2026-11.md) |
 | F140 pilot, series RLC on an Analog Discovery 3 (Issue #508) | raw oscilloscope traces of a frequency sweep, measured by the project's own live adapter | **go** (2026-11-22) | [ad3-rlc-pilot](ad3-rlc-pilot.md) |
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
 | COBE FIRAS monopole spectrum (RR8, F155 part 1, Issue #619) | the CMB monopole spectrum with the residuals, uncertainties, and Galactic spectrum of Fixsen et al. 1996, Table 4 | **go** (2026-11-25) | [cobe-firas-monopole](cobe-firas-monopole.md) |
@@ -52,6 +53,7 @@ The research of 2026-11-08 into open datasets for the measured-data labs is reco
 
 <!-- generated: conversions -->
 - Aalborg submerged-bar wave flume: no conversion; ZIP of CSV files (plus input archives and a PDF readme)
+- F145 bench sessions, series RLC and LED pair on an Analog Discovery 3 (Issue #614): no conversion; CSV (plain text), JSON, Markdown, SVG; the archive a ZIP of the same
 - F140 pilot, series RLC on an Analog Discovery 3 (Issue #508): no conversion; CSV (plain text) and JSON
 - Bayreuth RLC impedance (EM8, Issue #418): no conversion; JSON (plain text)
 - COBE FIRAS monopole spectrum (RR8, F155 part 1, Issue #619): no conversion; plain text (whitespace-separated columns)
@@ -119,6 +121,51 @@ blocked). When two branches add datasets whose ids are neighbours in the
 alphabetical order, Git reports a conflict inside a generated region; resolve
 it by running the generator again and committing, as
 `tests/integration/test_data_lists.py` shows.
+
+## Publishing a measured dataset
+
+The project's own measurements (the exports of the physics lab's live
+campaigns, for example) are published in two parts. The complete files go to
+an archive with a DOI (Zenodo), and the repository keeps the small part a
+lab, a check, or a replay needs. Both parts are made by one packager from
+the export folders and a declaration, never by hand (F145 part 3, Issue
+#614; the first dataset made this way is `ad3-bench-2026-11`).
+
+1. **The declaration** `data/publish/<dataset>.toml`. It names the dataset
+   (id, version, title, description, licence, publication date, DOI,
+   creators, keywords, notes on the provenance) and the software commits
+   that made the exports. It also lists the export folders in order, the
+   fields to replace (a file and a key path in its JSON, with the new
+   value: a device's serial number by a stable device identifier), and the
+   repository's part (the files of every export, and raw subsets by a rule
+   that does not depend on a result).
+2. **The package.** `uv run --locked python -m pbc.data.publish
+   --declaration <file> --exports <folder> --out <empty folder> --install
+   data/samples/<dataset>` writes:
+   - the archive's tree with `MANIFEST.tsv` (every file's size and SHA-256,
+     and the original's SHA-256 where a file was changed), `README.md` (the
+     provenance, the changes, the software, the recommended citation), and
+     `CITATION.cff`;
+   - one ZIP of that tree, with its SHA-256;
+   - `zenodo.json` (the deposit's metadata);
+   - the repository's part, copied to `data/samples/<dataset>/`.
+
+   The same exports give the same archive byte for byte. The packager
+   replaces a field where the declaration names it, then searches every
+   output file, the archive included, for each value it removed and for
+   the host's paths, and refuses the package on a hit. It uploads nothing
+   and needs no network or token.
+3. **The card and the dossier**, as in "Adding a dataset". The card records
+   the archive's file name, size, and SHA-256 under `archive` as
+   documentation: no check, test, or build reads the archive or the network.
+4. **The archive.** The owner creates the Zenodo draft, reserves the DOI,
+   and checks the metadata and the files before publishing. The DOI is then
+   written into the declaration, the packager is run again, and the card's
+   `archive` entry is updated.
+
+A later Issue could add the upload itself (the Zenodo deposition API with
+the owner's token, outside the build), a check that the published record's
+files equal the manifest, and a version bump for a corrected dataset.
 
 ## Recommendation for the first lab
 

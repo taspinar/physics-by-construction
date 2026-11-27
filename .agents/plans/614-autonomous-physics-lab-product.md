@@ -522,3 +522,37 @@ posts it on the Issue.
   parenthesis, none on a page; recorded, not changed.
 - **`reproduce_this` has no field for a product's commands**; they are in
   its `data` note, inside "Setup and commands" of the last section.
+
+## Part 3: the bench datasets (2026-11-27)
+
+The owner's decisions of 2026-11-27 on Issue #614 (issuecomment-7210910945): the two bench sessions are published, completely on Zenodo with a DOI and in part in the repository; the device serial becomes `AD3-001`; CI never depends on Zenodo; F155 is untouched. Not criteria of the Issue; the recorded model campaigns stay under `remaining`.
+
+### Risk (part 3)
+
+Level 3 by an escalation trigger no script detects (named in round 1 of the review of part 3, M1): a changed published scientific claim. SA9 replaces main's statements that only the frequency response has run on the real device, that the ring-down and the LED pair are simulator-only, that the two protocols' agreement on the real coil has not been measured, and that live support means the frequency response on the series RLC circuit, by live support for all three protocols and the measured results of the bench sessions; the Limits bullet changes with them. The owner's decisions of 2026-11-26 and 2026-11-27 release those measurements, with their failed checks; the owner's approval of the exact head decides the new statements (`.agents/approvals/614.md`). By its paths alone the part is Level 2: `src/` (a new module `pbc.data.publish`, a new reference module, `lab.py` and `__main__.py` of the product, `pilot_record.py` and two added numbers in the capstone's experiment), tests, data (a new card in the sensitive `data/registry/`, a new sample folder, a new declaration under `data/publish/`), docs, the page SA9's prose and one data card, and comments in two example plans. No dependency file, protected path, ADR, envelope, driver output, watchdog, stop, protocol or protocol version, precondition, tolerance, budget, or skip changes; no test is weakened. The pilot path `run` (`workflow.py`) is unchanged.
+
+### Skills (part 3)
+
+Visual deliverables: one scientific figure (the dataset's reference figure, `pbc.data.reference.ad3_bench_2026_11.make_figure`, status processed, no model drawn); the page SA9 gets prose and a data card, no new layout and no new figure.
+Skills: pbc-physics-teaching@7f34987, pbc-scientific-visualization@a70b501
+Accessible fallback: the figure is a reference figure of the dossier, not shown on a page; the dossier states its content in its caption and tables.
+
+### Decisions
+
+- **One dataset** `ad3-bench-2026-11` (RLC and LED together): one device, one owner decision chain, one archive. It is about 3.3 MB of the 8 MB cap; the largest file, the RLC raw subset, is 1.6 MB of 2 MB.
+- **The replay of the frequency-response subset.** The raw samples are filtered to protocol `frequency-response`, and the plan is narrowed to that protocol with `dataclasses.replace`. The adaptive route measures that protocol first, so the replay asks for the same 31 settings and gives the recorded fit exactly. No protocol changes.
+- **The packager** `pbc.data.publish`. It replaces fields by key path, with the removed value read from the input. It rewrites JSON only in the `json.dumps` layout the file already has, and writes a deterministic ZIP (sorted, fixed time and mode). It checks the output for leaks: the removed values, the input path, and the home directory, inside the archive too. It writes MANIFEST.tsv with the original's SHA-256, a README, CITATION.cff, and zenodo.json, and has no network code.
+- **The DOI** was a placeholder in `data/publish/ad3-bench-2026-11.toml` until the owner reserved 10.5281/zenodo.24578221 in the Zenodo draft (2026-11-27). The supervisor then filled it in and ran the packager again on the original exports. `tests/unit/test_data_ad3_bench_2026_11.py::test_the_archive_doi_is_the_reserved_one` asserts it in the declaration, the README, the citation file, and the card.
+- **Bench conditions.** A live `run_campaign` adds `bench` (plugged_in, room_temperature_c, as given or "not recorded") and, where the driver has `conditions()`, `conditions_at_start` and `conditions_at_end` to the run record's configuration. The values come from the plan file's `[bench]` table (`lab.load_bench`) or from `--plugged-in` and `--room-temperature`. The simulated and recorded modes are unchanged.
+- **SA9.** The sentences that said the ring-down and the LED pair were simulator-only now state neutrally what was measured, beside a data card of the new dataset. The two counts in the prose are computed from the dataset by `pilot_record.bench_sessions` and recorded by the experiment.
+
+### Teaching (pbc-physics-teaching)
+
+The page raised a question it could not answer: whether the two protocols agree on the real coil. The bench sessions now answer it in the same place, right after the pilot's record. That is the counterintuitive point of the page's independent check, made concrete on a real circuit: the protocols agree on f0 and not on Q, and the check fails. The new sentences keep the kinds of result apart (section 4 of the skill): measurements and the lab's checks on them are stated; no inference about a cause is drawn ("they warrant no statement about why").
+
+### Discoveries (part 3)
+
+- f0 agrees between the protocols in 25 of 27 campaigns, not in all (`2026-11-25-series-rlc` 2.91 combined s.e., `2026-11-26-series-rlc-run16` 2.14).
+- The LED session's plug-in note (about 17:08 local) is after LED run 1's recorded start (16:07:48 UTC), so no minutes after plug-in are computed for the LED runs.
+- The pilot's recorded f0 equals its −90° crossing interpolated in log frequency (47,008.7 Hz), so the crossing is the quantity comparable with the campaigns.
+- The live measurement tables hold numbers from full-precision samples; a replay from `raw.csv` (12 significant digits) reproduces them to 1e-9 and the evaluations exactly on the recording machine; CI's Linux gave fits that differ by up to 3e-8 relative (the first two CI runs of the pull request failed on the exact comparison), so the tests compare the evaluations to `agent_campaign.TOLERANCE` (1e-6).

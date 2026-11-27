@@ -793,6 +793,10 @@ def run() -> Experiment:
         experiment.number(
             "pilot-q-error", 100 * abs(metrics["q_relative_error"]), ".0f"
         )
+        # The owner's bench sessions, stated from their dataset as recorded.
+        sessions = pilot_record.bench_sessions()
+        experiment.number("bench-rlc", sessions["rlc"], "d")
+        experiment.number("bench-f0-agree", sessions["f0-agree"], "d")
     experiment.figure(
         "fig-pilot-discrepancy",
         pilot_record.draw_discrepancy,

@@ -10,6 +10,7 @@ from support.experiments import assert_the_page_and_the_results_agree, run_entry
 from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
+from pbc.electromagnetism import pilot_record
 from pbc.electromagnetism.experiments import autonomous_physics_lab as lab
 
 MODULE = "pbc.electromagnetism.experiments.autonomous_physics_lab"
@@ -133,6 +134,21 @@ def test_the_pilot_record_is_replayed_and_fails_the_nominal_closed_form(results)
     assert 46_900 < float(f0[1].replace(",", "")) < 47_100
     assert 1.5 < float(q[1]) < 1.6
     assert float(found["pilot-f0-error"]) > 5 and float(found["pilot-q-error"]) > 40
+
+
+def test_the_bench_sessions_are_stated_from_their_dataset(results):
+    """The page's sentences on the owner's bench sessions
+    (docs/datasets/ad3-bench-2026-11.md): 27 RLC campaigns, the protocols
+    agree on f0 in 25 and differ in Q in every one, the evaluator fails
+    every campaign; two LED runs, the held-out check fails in both."""
+    found = numbers(results)
+    assert found["bench-rlc"] == "27"
+    assert found["bench-f0-agree"] == "25"
+    # "They differ in Q in every one ... the verdict is false in all of
+    # them"; "the held-out check ... did not pass" (both LED runs).
+    counts = pilot_record.bench_sessions()
+    assert counts["q-differ"] == counts["rlc-failed"] == counts["rlc"] == 27
+    assert counts["led"] == counts["led-held-out-failed"] == 2
 
 
 @pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))

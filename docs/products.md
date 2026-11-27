@@ -1171,3 +1171,52 @@ evaluated`: no measurement M0 to M5 has been made, and the bench session is
 the owner's after this part is merged. The pilot's numbers are
 exploratory, because its data chose the thresholds. The original track has
 no agent reviewer yet; `review` and `record` refuse its projects.
+
+## The product, part 3: the bench datasets (F145, Issue #614, 2026-11-27)
+
+Part 3 publishes the owner's two bench sessions as one declared dataset,
+`ad3-bench-2026-11`. It holds 27 live campaigns on the series RLC circuit
+(2026-11-25 and 2026-11-26, both protocols) and 2 on the red LED pair
+(2026-11-26), every campaign with its failed checks. The card is
+`data/registry/ad3-bench-2026-11.yaml` and the dossier
+`docs/datasets/ad3-bench-2026-11.md`. Since this part the page no longer
+says that the ring-down and the LED pair are simulator-only: it states
+neutrally what the sessions measured (the two protocols agree on f0 in 25 of
+27 campaigns and differ in Q in every one; the resonance is higher than the
+pilot's, cause not established; the LED pair's held-out check did not pass)
+and links the dataset. The model campaigns are still to be recorded.
+
+**The split and the archive.** The repository keeps `run.json`,
+`measurements.csv`, and `evidence.json` of every campaign. For the replay in
+CI it also keeps the raw samples of the first RLC campaign of 2026-11-26
+(its frequency-response records only) and of both LED runs. The complete
+exports go to a Zenodo record with a DOI, prepared as a draft that the owner
+checks and publishes; no check or build reads it. The device's serial number
+is replaced in every published file by `AD3-001`.
+
+**The packager.** `pbc.data.publish` (`python -m pbc.data.publish`) writes
+both parts from the export folders and a declaration
+(`data/publish/ad3-bench-2026-11.toml`). It writes them deterministically,
+needs no network or token, and uploads nothing ("Publishing a measured
+dataset" in `docs/datasets/README.md`).
+
+**The replay in CI.** The product's recorded adapter replays the sampled
+frequency response, with the plan narrowed to that protocol, and both LED
+runs. Each replay gives the export's recorded evaluation to a relative
+1e-6, the product's tolerance for a replay on another machine
+(`tests/unit/test_data_ad3_bench_2026_11.py`). No protocol, protocol version,
+precondition, or envelope changed.
+
+**Bench conditions from now on.** A live campaign (`lab.run_campaign` in
+the live mode) records two kinds of operating conditions in its run
+record's configuration:
+
+- the device's own monitor at the start and the end (`conditions_at_start`
+  and `conditions_at_end`, where the driver reports them);
+- the bench conditions `plugged_in` and `room_temperature_c`, from the plan
+  file's table `[bench]` (`lab.load_bench`) or the options `--plugged-in` and
+  `--room-temperature` of `campaign`, recorded as given, or "not recorded"
+  when absent.
+
+The simulated and recorded modes record neither, and the pilot's command
+`run` is unchanged.

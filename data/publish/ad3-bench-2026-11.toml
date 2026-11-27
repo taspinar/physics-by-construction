@@ -1,0 +1,110 @@
+# The declaration of the dataset ad3-bench-2026-11 for the packager
+# pbc.data.publish (F145 part 3, Issue #614). The supervisor runs it on the
+# original exports to make the archive for Zenodo; the repository's part
+# data/samples/ad3-bench-2026-11/ is its output for the same input:
+#
+#   uv run --locked python -m pbc.data.publish \
+#       --declaration data/publish/ad3-bench-2026-11.toml \
+#       --exports <the folder of the 29 export folders> --out <empty folder> \
+#       --install data/samples/ad3-bench-2026-11
+#
+# `doi` is the DOI the owner reserved in the Zenodo draft on 2026-11-27
+# (tests/unit/test_data_ad3_bench_2026_11.py asserts it); a change of it
+# changes the README and CITATION.cff, so the packager is run again and the
+# card's archive digest follows.
+
+[dataset]
+id = "ad3-bench-2026-11"
+version = "1.0.0"
+title = "Series RLC and LED-pair campaigns on an Analog Discovery 3, bench sessions of 2026-11-25 and 2026-11-26"
+description = """
+Twenty-seven live campaigns on one series RLC circuit (100 ohm, nominal 1 mH and 10 nF; in each campaign a frequency response from 5 kHz to 200 kHz and ring-downs after a square-wave step) and two live campaigns on two red 5 mm LEDs in anti-parallel behind 100 ohm (the amplitude-dependent response at 1 kHz, 0.2 V to 2 V), measured with a Digilent Analog Discovery 3 by the Autonomous Physics Lab of the project Physics by Construction (F145). Every campaign is published as exported, with its raw samples, measurement table, run record, evidence log, report, figures, and checkpoints, including the failed model checks. The device's serial number is replaced by the stable identifier AD3-001. An educational and experimental tool, not a certified laboratory instrument.
+"""
+licence = "CC-BY-4.0"
+publication_date = "2026-11-27"
+doi = "10.5281/zenodo.24578221"
+repository = "https://github.com/taspinar/physics-by-construction"
+keywords = ["series RLC circuit", "resonance", "ring-down", "LED", "nonlinear response", "Analog Discovery 3", "laboratory automation", "physics education"]
+notes = [
+  "Measured by Ahmet Taspinar (the owner, at the bench) with the supervising agent session of the project; the circuit was built and confirmed by the owner, the product never rewires it.",
+  "Device: Digilent Analog Discovery 3, identified as AD3-001 in every published file; WaveForms SDK 3.25.1; the factory calibration, not adjusted; channel 1 at the generator W1 on the 5 V range, channel 2 at the response node on the 50 V range, both against ground.",
+  "Series RLC circuit: W1 -> 100 ohm -> the coil (nominal 1 mH) -> node A -> the capacitor (nominal 10 nF) -> ground; channel 2 at node A. The owner states that the circuit and its parts were not changed since the pilot of 2026-11-22 (dataset ad3-rlc-pilot of the repository).",
+  "Session of 2026-11-25: three campaigns between 19:56 and 20:04 UTC; the time the device was plugged in and the room temperature were not recorded.",
+  "Session of 2026-11-26: twenty-four series RLC campaigns from 12:14 to 13:39 UTC; the device was plugged in at about 12:10 UTC (13:10 local, the owner's clock), the room at about 20 degrees C. Two LED-pair campaigns started at 16:07:48 and 16:13:47 UTC (the run records' clock); the owner noted the device plugged in at about 17:08 local (16:08 UTC) by the owner's clock, which the two clocks do not reconcile with the first start, and the room at 19 degrees C.",
+  "Every campaign used the adaptive route of the product; the plans are in each run.json. No campaign was left out and no measurement was removed.",
+  "Licence: CC BY 4.0, the owner's decisions of 2026-11-25 and 2026-11-26 on Issue #614 of the repository.",
+]
+
+[[dataset.creators]]
+name = "Taspinar, Ahmet"
+
+[[software]]
+commit = "ee85ab59f6bf92ea3c110cdadbc8d5b63f87b847"
+code_digest = "f34b3d8a7faef4a15d579a04cb48da2d80c36a88d9630e69d3025729487ef9dc"
+description = "the product's code of the three campaigns of 2026-11-25"
+
+[[software]]
+commit = "b322b8d4a391101f65454da3031317c207a60294"
+code_digest = "f62c047fde3d219564bea9533fda687942d4b552e453711fac8666c304164a6a"
+description = "the product's code of the campaigns of 2026-11-26 (the same code digest at d4d9a16, a plan-only commit)"
+
+[exports]
+names = [
+  "2026-11-25-series-rlc",
+  "2026-11-25-series-rlc-run2",
+  "2026-11-25-series-rlc-run3",
+  "2026-11-26-series-rlc",
+  "2026-11-26-series-rlc-run2",
+  "2026-11-26-series-rlc-run3",
+  "2026-11-26-series-rlc-run4",
+  "2026-11-26-series-rlc-run5",
+  "2026-11-26-series-rlc-run6",
+  "2026-11-26-series-rlc-run7",
+  "2026-11-26-series-rlc-run8",
+  "2026-11-26-series-rlc-run9",
+  "2026-11-26-series-rlc-run10",
+  "2026-11-26-series-rlc-run11",
+  "2026-11-26-series-rlc-run12",
+  "2026-11-26-series-rlc-run13",
+  "2026-11-26-series-rlc-run14",
+  "2026-11-26-series-rlc-run15",
+  "2026-11-26-series-rlc-run16",
+  "2026-11-26-series-rlc-run17",
+  "2026-11-26-series-rlc-run18",
+  "2026-11-26-series-rlc-run19",
+  "2026-11-26-series-rlc-run20",
+  "2026-11-26-series-rlc-run21",
+  "2026-11-26-series-rlc-run22",
+  "2026-11-26-series-rlc-run23",
+  "2026-11-26-series-rlc-run24",
+  "2026-11-26-led-pair",
+  "2026-11-26-led-pair-run2",
+]
+
+[[replace]]
+file = "run.json"
+field = ["run", "device", "serial"]
+value = "AD3-001"
+note = "The device's serial number, replaced by the stable device identifier; the original files are kept unchanged by the owner."
+
+[[replace]]
+file = "checkpoints/checkpoint.json"
+field = ["bench", "serial"]
+value = "AD3-001"
+note = "The same replacement in the campaign's checkpoint."
+
+[repository]
+files = ["run.json", "measurements.csv", "evidence.json"]
+
+# The raw samples kept for the replay in CI, by a rule that does not depend
+# on a result: the first series RLC campaign of 2026-11-26, its
+# frequency-response records only (no ring-downs), and both LED-pair runs.
+[[repository.raw]]
+export = "2026-11-26-series-rlc"
+keep = ["frequency-response"]
+
+[[repository.raw]]
+export = "2026-11-26-led-pair"
+
+[[repository.raw]]
+export = "2026-11-26-led-pair-run2"

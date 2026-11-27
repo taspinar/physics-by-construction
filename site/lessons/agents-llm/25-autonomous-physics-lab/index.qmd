@@ -75,10 +75,10 @@ and one figure are different: they show the measured record of one real
 circuit, the declared dataset `ad3-rlc-pilot`, replayed and not measured
 again. The agent route is replayed from a committed trace that a scripted
 policy wrote, not a language model; the page says so wherever it shows it,
-and it presents no campaign as a model's. Of the three protocols, only the
-frequency response has run on the real device, in that one recorded pilot;
-the ring-down and the LED pair are simulator-only until they are measured at
-the bench.
+and it presents no campaign as a model's. All three protocols have since run
+on the real device, in the owner's bench sessions. Their results are stated
+from a second declared dataset, `ad3-bench-2026-11`, and are not replayed
+here.
 
 ## Assumptions
 
@@ -648,8 +648,27 @@ shows the discrepancy as the record holds it and offers no resolution of it.
 What explains the coil's loss is an open question for a later, registered
 measurement, not for this lab. The worked example before this one is the
 reason the lab can still be trusted on such a circuit: its independent check
-does not rest on the labels. Whether the two protocols agree on this real
-coil has not been measured yet: the ring-down has not run on the device.
+does not rest on the labels.
+
+Do the two protocols agree on this real coil? The owner's bench sessions
+measured the same circuit again with both protocols, in
+`{python} result["bench-rlc"]` campaigns over two days, and measured two red
+LEDs in anti-parallel behind a resistor:
+
+```{python}
+#| echo: false
+data_card("ad3-bench-2026-11")
+```
+
+On the real coil the two protocols agree on $f_0$ within two combined
+standard errors in `{python} result["bench-f0-agree"]` of the
+`{python} result["bench-rlc"]` campaigns. They differ in $Q$ in every one,
+the ring-downs giving the higher value, so the evaluator's verdict is false
+in all of them. The resonance lies higher than in the pilot's record, and it
+moved within a session; the cause is not established. The LED pair was
+measured too, and the held-out check of its fitted characteristic did not
+pass. These are measurements and the checks the lab made on them; they warrant
+no statement about why. The dataset's dossier lists every campaign.
 
 ### What the lab shows
 
@@ -670,9 +689,9 @@ The brief, requirement by requirement:
 6. *Evidence a third party can check*: the export and the evaluator, which
    computed every estimate of the campaigns' tables from the raw samples.
 7. *Runs without hardware or an account*: this page is that run. What is not
-   shown is the lab on a real bench beyond the pilot's frequency response:
-   the ring-down and the LED pair wait for their bench sessions, and an
-   agent campaign by a model waits for its recording.
+   run here is the lab on a real bench: the bench sessions' results are
+   stated from their dataset, not replayed, and an agent campaign by a model
+   waits for its recording.
 
 ## Explore and extend {#extend}
 
@@ -680,9 +699,10 @@ The brief, requirement by requirement:
 runs the same campaigns on your bench, under the live envelope and its current
 bound, after you confirm the circuit; `products/physics-lab/README.md` gives
 the wiring and the commands. A live result stays on your machine. On this
-site, live support means what the pilot showed: the frequency response on the
-series RLC circuit. The ring-down and the LED pair are simulator-only until
-they are measured at the bench.
+site, live support means what the recorded sessions showed: the pilot's
+frequency response, and the owner's bench sessions with all three protocols
+on the series RLC circuit and the LED pair (`ad3-bench-2026-11`), where the
+checks on the real circuits did not pass.
 
 **Record an agent.** The command `record-campaign` records a campaign of a
 model of your choice through the same tools, counts the tokens of every call,
@@ -702,9 +722,10 @@ resistor, which the held-out check cannot.
 
 ## Limits {#limits}
 
-- **Simulated, apart from one record.** Every campaign on the page is a
-  model of a bench with Gaussian noise. The one measured record is a single
-  sweep of one circuit by one protocol, on the device's factory calibration.
+- **Simulated, apart from the measured records.** Every campaign on the page
+  is a model of a bench with Gaussian noise. The one measured record replayed
+  is a single sweep of one circuit by one protocol, on the device's factory
+  calibration; the bench sessions are stated from their dataset.
 - **The agent is a placeholder.** The committed agent traces were written by
   a scripted policy. The comparison shows that the route and its accounting
   work, not what any language model would do.
@@ -819,8 +840,9 @@ reproduce_this(
         "tests/unit/test_physics_lab_campaigns.py",
     ],
     data="""
-        The pilot's record is committed in `data/samples/ad3-rlc-pilot`; no
-        download, no model, and no account are needed to read it. The product
+        The pilot's record is committed in `data/samples/ad3-rlc-pilot` and
+        the bench sessions' in `data/samples/ad3-bench-2026-11`; no
+        download, no model, and no account are needed to read them. The product
         itself runs from the same clone: `uv run --locked --no-dev python -m
         pbc.products.physics_lab campaign --plan
         products/physics-lab/examples/campaign-series-rlc.toml
