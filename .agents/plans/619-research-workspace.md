@@ -54,6 +54,14 @@ the session's templates and reader, the positive controls, and the track
 end to end with the follow-up's evidence `not evaluated` (see
 "Discoveries", part 2 session 1). Parts 2b, 3, and 4 are not approved.
 
+**Part 2b (2026-11-28).** The owner made the registered bench session on
+2026-11-28 and started part 2b the same day. The part-2b session declared
+the session as the dataset `ad3-rlc-coil-followup` through its gate, applied
+the registered rules unchanged to its repository part (no byte between the
+markers and no module of the outcome code changed), and wrote the verdicts
+and the revised claim (`products/research-workspace/examples/coil-loss/followup-2026-11-28.toml`);
+see "Discoveries", part 2b. Parts 3 and 4 are not approved.
+
 **The registration below is no longer a draft. It is frozen when this
 text is on `main` after the owner's approving review** of the exact head
 of part 0's pull request, as "Freezing the registration" defines; until
@@ -1506,3 +1514,50 @@ dependency group.
     refuse an original-track project, and its outcomes are decided by the
     rules. A reviewer role for the track belongs to part 3 if the page
     needs it.
+
+- (2026-11-28, part 2b session 1) The follow-up's evidence, from the owner's
+  bench session of 2026-11-28 (read-only copy outside the repository):
+  - **The outcomes.** The registered rules applied to the repository's
+    part of the session give the supervisor's evaluation of the same day:
+    G1 and G2 `inconclusive`, the precondition not met (L −2.4 %, C −7.7 %
+    against pilot run 3), the deviation that M0 started 4 minutes after the
+    plug-in, and R_s_bb reported at 3.08 ohm, outside 97.9 to 102.1 ohm.
+    On this machine the follow-up's state is the evaluation's byte for
+    byte (SHA-256 dcf9d3d0…, which its ledger records), and its report,
+    ledger, and log are identical; its run record differs only in the
+    digests of the six run records whose serial was replaced, in the
+    early M0's raw samples, and in the figure and the report of each of
+    the six sweeps, which are in the archive only. The test
+    compares the quantities to `agent_campaign.TOLERANCE` relative and the
+    printed numbers to their last digit, so that CI's Linux may differ in
+    the last bits.
+  - **The packager needed two additions,** because the session holds one
+    folder per sweep: a list of one export's files for the repository
+    (`[[repository.export]]`, paths or patterns, each required to name a
+    file) and a replaced field's file as a pattern (`M*/run.json`). The
+    output for `ad3-bench-2026-11` is unchanged (its README sentence is
+    built the same way when no export list is declared).
+  - **The repository's part, by a rule independent of the results:** every
+    file of both folders except the raw samples of the early M0 and of the
+    diagnostic sweep, the evaluation's `view.html` (100,137 bytes, a
+    rendering of the other four files), and the figure of every sweep
+    (`frequency-response.svg`, a rendering of `points.csv`: the first
+    verification refused them, since the repository commits no generated
+    image outside `site/assets/`), and the report of every sweep
+    (`report.md` links to the figure, which the documentation check
+    requires to exist). 2,406,956 bytes are committed in 37 files, and
+    481,196 of the 33,554,432 bytes of `data/samples` remain.
+  - **The verdicts and the revised claim** are a record beside the example,
+    entered into a project's log with the workspace's existing `decide`
+    command (no new module in the package, which would have changed the
+    classification in `graph.py` and so the pin). A decision is not
+    evidence: G1 and G2 stay `inconclusive` in the log.
+  - **No published sentence becomes untrue.** SA9 says that what explains
+    the coil's loss "is an open question for a later, registered
+    measurement"; the measurement decided nothing, so the question stays
+    open. No page is changed (part 3 shows the outcome).
+  - **The view's footer** (`original_view.py`, outside the outcome code)
+    and the report's (inside it) credit only `ad3-rlc-pilot`, also when a
+    session of `ad3-rlc-coil-followup` is evaluated. The report cannot
+    change without changing the pin; the page of part 3 credits the
+    dataset from its card.

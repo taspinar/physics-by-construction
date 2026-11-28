@@ -1,0 +1,317 @@
+{
+  "format": 1,
+  "record": {
+    "task": "The coil-loss follow-up of ad3-rlc-pilot: why the ideal series RLC model fails on the pilot's circuit (G1, G2 of the frozen registration)",
+    "hypothesis": "Each registered rule returns the outcome its explanation predicts, or inconclusive; the follow-up decides which",
+    "assumptions": [
+      "The pilot's sweeps are read through the dataset's reader unchanged, at the 13 coarse frequencies; the nominal 100 ohm stands for R_s_bb until M4.",
+      "The thresholds were chosen after seeing the pilot's data: the pilot's numbers are exploratory, only M1 to M5 are confirmatory.",
+      "The simulated controls use the closed form of the series circuit with the pilot's own noise level, the registered input, and fixed seeds.",
+      "The follow-up's outcomes are computed only from a session measured after the freeze, by the code whose identity the log records."
+    ],
+    "protocol_version": "F155 part 2",
+    "split": {
+      "probed": "the pilot's two sweeps (exploratory) and the simulated controls",
+      "held out": "M0 to M5 of the registration, made after part 2 is merged"
+    },
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "budgets": {
+      "stages": 3,
+      "seeds": 5
+    },
+    "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+    "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c",
+    "environment": {
+      "python": "3.14.7",
+      "numpy": "2.5.5"
+    }
+  },
+  "cycles": [
+    {
+      "number": 1,
+      "reason": "first cycle"
+    }
+  ],
+  "attempts": [
+    {
+      "id": "pilot/analysis",
+      "candidate": "pilot",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [],
+      "artifacts": [
+        {
+          "name": "pilot",
+          "path": "pilot.json",
+          "sha256": "153ed869783908c58cbbdcf65dbfb3dd845f32d3436f7b1ceb7ab31ff1893aff",
+          "kind": "derived"
+        }
+      ],
+      "prior": []
+    },
+    {
+      "id": "control/explanations",
+      "candidate": "controls",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [],
+      "artifacts": [
+        {
+          "name": "controls",
+          "path": "controls.json",
+          "sha256": "a4b848547e2ee322ef5f99bad1ee9ebab0118cc9b075f4f576a44e604dbdcbf7",
+          "kind": "derived"
+        }
+      ],
+      "prior": []
+    },
+    {
+      "id": "control/boundaries",
+      "candidate": "boundaries",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [],
+      "artifacts": [
+        {
+          "name": "boundaries",
+          "path": "boundaries.json",
+          "sha256": "5a091aa2c8f10b91da89ca7ac387a3fa2768231116ce8196817caed5cea1d3d4",
+          "kind": "derived"
+        }
+      ],
+      "prior": []
+    },
+    {
+      "id": "followup/G1",
+      "candidate": "G1",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [],
+      "artifacts": [
+        {
+          "name": "G1",
+          "path": "followup.json",
+          "sha256": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4",
+          "kind": "derived"
+        }
+      ],
+      "prior": []
+    },
+    {
+      "id": "followup/G2",
+      "candidate": "G2",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [],
+      "artifacts": [
+        {
+          "name": "G2",
+          "path": "followup.json",
+          "sha256": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4",
+          "kind": "derived"
+        }
+      ],
+      "prior": []
+    },
+    {
+      "id": "followup/precondition",
+      "candidate": "precondition",
+      "cycle": 1,
+      "status": "completed",
+      "diagnostics": [],
+      "artifacts": [
+        {
+          "name": "precondition",
+          "path": "followup.json",
+          "sha256": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4",
+          "kind": "derived"
+        }
+      ],
+      "prior": []
+    }
+  ],
+  "evaluations": [
+    {
+      "attempt": "pilot/analysis",
+      "evaluator": "pbc.products.research_workspace evaluator, recomputation from the inputs",
+      "correct": true,
+      "metrics": {
+        "R_L0": 62.67903064940078
+      },
+      "resources": {},
+      "depends_on": [
+        {
+          "name": "pilot",
+          "path": "pilot.json",
+          "sha256": "153ed869783908c58cbbdcf65dbfb3dd845f32d3436f7b1ceb7ab31ff1893aff",
+          "kind": "derived"
+        }
+      ],
+      "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+      "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c"
+    },
+    {
+      "attempt": "control/explanations",
+      "evaluator": "pbc.products.research_workspace evaluator, recomputation from the inputs",
+      "correct": true,
+      "metrics": {
+        "seeds": 5.0
+      },
+      "resources": {},
+      "depends_on": [
+        {
+          "name": "controls",
+          "path": "controls.json",
+          "sha256": "a4b848547e2ee322ef5f99bad1ee9ebab0118cc9b075f4f576a44e604dbdcbf7",
+          "kind": "derived"
+        }
+      ],
+      "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+      "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c"
+    },
+    {
+      "attempt": "control/boundaries",
+      "evaluator": "pbc.products.research_workspace evaluator, recomputation from the inputs",
+      "correct": true,
+      "metrics": {
+        "cases": 24.0
+      },
+      "resources": {},
+      "depends_on": [
+        {
+          "name": "boundaries",
+          "path": "boundaries.json",
+          "sha256": "5a091aa2c8f10b91da89ca7ac387a3fa2768231116ce8196817caed5cea1d3d4",
+          "kind": "derived"
+        }
+      ],
+      "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+      "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c"
+    },
+    {
+      "attempt": "followup/G1",
+      "evaluator": "pbc.products.research_workspace evaluator, recomputation from the inputs",
+      "correct": true,
+      "metrics": {},
+      "resources": {},
+      "depends_on": [
+        {
+          "name": "G1",
+          "path": "followup.json",
+          "sha256": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4",
+          "kind": "derived"
+        }
+      ],
+      "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+      "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c"
+    },
+    {
+      "attempt": "followup/G2",
+      "evaluator": "pbc.products.research_workspace evaluator, recomputation from the inputs",
+      "correct": true,
+      "metrics": {},
+      "resources": {},
+      "depends_on": [
+        {
+          "name": "G2",
+          "path": "followup.json",
+          "sha256": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4",
+          "kind": "derived"
+        }
+      ],
+      "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+      "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c"
+    },
+    {
+      "attempt": "followup/precondition",
+      "evaluator": "pbc.products.research_workspace evaluator, recomputation from the inputs",
+      "correct": true,
+      "metrics": {},
+      "resources": {},
+      "depends_on": [
+        {
+          "name": "precondition",
+          "path": "followup.json",
+          "sha256": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4",
+          "kind": "derived"
+        }
+      ],
+      "code": "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+      "configuration": "d007a375289ebd419552e74916994febd0e2e43a1a1e2dc6aa30c0598af0e11c"
+    }
+  ],
+  "reports": [],
+  "claims": [
+    {
+      "id": "pilot-loss",
+      "text": "Exploratory: the pilot's R-L node sweep, read with the nominal 100 ohm, gives R_L0 near the resonance and a loss that rises towards 200 kHz; these data chose the thresholds and confirm nothing",
+      "scope": "pilot run 3 of ad3-rlc-pilot (2026-11-22), the nominal resistor",
+      "runs": {
+        "pilot/analysis": true
+      },
+      "sources": []
+    },
+    {
+      "id": "pilot-sensitivity",
+      "text": "Exploratory: an assumed channel mismatch at the registration's thresholds changes Rise by tens of ohm, so the pilot cannot separate a mismatch from a loss that depends on the frequency (G2 needs M3)",
+      "scope": "pilot runs 2 and 3, constant assumed mismatches",
+      "runs": {
+        "pilot/analysis": true
+      },
+      "sources": []
+    },
+    {
+      "id": "controls",
+      "text": "Each rule returns the outcome its explanation predicts on simulated sessions (DC, AC, MISMATCH, BOTH; the precondition met and not met; G1 undecidable under a steep loss), for every seed",
+      "scope": "simulated sessions at the pilot's noise level, seeds 0, 1, 2, 3, 4",
+      "runs": {
+        "control/explanations": true
+      },
+      "sources": []
+    },
+    {
+      "id": "boundaries",
+      "text": "At every threshold the rules give the outcome the registration's text gives at that value, never two at once; the meter model behaves as registered on constructed readings",
+      "scope": "constructed values",
+      "runs": {
+        "control/boundaries": true
+      },
+      "sources": []
+    },
+    {
+      "id": "G1",
+      "text": "G1 (the loss near the resonance): inconclusive",
+      "scope": "the pilot's circuit of F140 on the owner's breadboard, as measured with the AD3 (the parts, the breadboard, the leads, and the instrument together)",
+      "runs": {
+        "followup/G1": true
+      },
+      "sources": []
+    },
+    {
+      "id": "G2",
+      "text": "G2 (the frequency dependence and the phase residual): inconclusive",
+      "scope": "the pilot's circuit of F140 on the owner's breadboard, as measured with the AD3 (the parts, the breadboard, the leads, and the instrument together)",
+      "runs": {
+        "followup/G2": true
+      },
+      "sources": []
+    },
+    {
+      "id": "precondition",
+      "text": "the precondition (identity of the parts): not met",
+      "scope": "the pilot's circuit of F140 on the owner's breadboard, as measured with the AD3 (the parts, the breadboard, the leads, and the instrument together)",
+      "runs": {
+        "followup/precondition": true
+      },
+      "sources": []
+    }
+  ],
+  "frozen": [],
+  "finals": []
+}

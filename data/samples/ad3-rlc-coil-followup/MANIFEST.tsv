@@ -1,0 +1,37 @@
+path	bytes	sha256	original_sha256	derivation
+CITATION.cff	630	8165eeee6cdb4a9f24dc7db3cccd2b93de63eb9182ca54c68eb0745afeef2d2b		written by the packager
+README.md	7090	bdb001dcf503d2c4902857bd1c2e0f45e6247fdabf3600c245b78e0f0d5cccbc		written by the packager
+exports/2026-11-26-pilot-input-diagnostic/evidence.json	3013	2e56ccbd63fd68d66df3b202d51a70c820e1223f1ff6d77ede091b7fde3f00f6		unchanged
+exports/2026-11-26-pilot-input-diagnostic/points.csv	881	5ecaf439f1e29f2ccbd446f6f212e3d5c5f91ad713c37f034d6f24cc33f8b69d		unchanged
+exports/2026-11-26-pilot-input-diagnostic/run.json	3942	28ab3586344393134b432863257e8dbb3f35a6b201cfe429ca15b9ff441da420	f940b30fffd27892424eb977bc33dbe3ecca2b2ad3b26e36ba399a9482a40c9a	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/M0-repeat/evidence.json	3014	1c23216125f66808cb4a407d77e6ae883abc9579eda4fca4c2cd83d8907c9120		unchanged
+exports/2026-11-28-coil-loss/M0-repeat/points.csv	879	b471bb1a406b1fbe5812c7cd6e54f42063c9c90e970fd0322200b73333c13866		unchanged
+exports/2026-11-28-coil-loss/M0-repeat/raw.csv	568420	051e834c029f29cbf34b218f97e07a5701576032814799e1cdbbbf376e9839ce		unchanged
+exports/2026-11-28-coil-loss/M0-repeat/run.json	3947	22c5b819e071bd0003149fca26f924c16dfb27a3a0d1113f0f40a4bcf1cd89ea	3fa5e975446e30dd4720ae1bb4fb26e328aa553bd142dcdab124c7b556d982d6	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/M0/evidence.json	3011	bfad2cc24b98fdc6f0076746b4558b3f49933ca61fd0cdf48c274cc523be8427		unchanged
+exports/2026-11-28-coil-loss/M0/points.csv	878	823db794411f3672ed562c7d76340a0e3b7e8828d91434fb97bb110fe284a618		unchanged
+exports/2026-11-28-coil-loss/M0/run.json	3947	4eb80b37582587fadeee30e5f93083ece77f6a657642f562e497768f19915f4c	e574b6b7c735ec062731a7ec5a5df0948855cc42998226c6a24746b82e1b28e7	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/M1/evidence.json	3014	9748079b81395314044512a3a531ff606182364944ec4f4f9ffe7adb0781ae24		unchanged
+exports/2026-11-28-coil-loss/M1/points.csv	878	f9749eb0bb20e5f5c584de0284f05b55252a47e382b6028679c3f012e1251f64		unchanged
+exports/2026-11-28-coil-loss/M1/raw.csv	568534	5ef7c164200bb74316c066b906a3296159afea2722bd8d1aee174b397d377846		unchanged
+exports/2026-11-28-coil-loss/M1/run.json	3947	5033dbb395797d245a93318d3579a4df6b2b9c55f78e16ce46d6f054a051d894	b54665cdeec21373b615d7c0fb769045a6d497c73d8297d3dce12eaaf213d14f	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/M2/evidence.json	2916	c260611673b791b6c124c867bb796725ab5a7ae3a1b139d4be66098b02fc5ee6		unchanged
+exports/2026-11-28-coil-loss/M2/points.csv	612	42470fbd3c8527f4e432fa7cddedff13e5ac6174268b7366f488199864a39725		unchanged
+exports/2026-11-28-coil-loss/M2/raw.csv	386911	a7ee271c75a1b6b0cefd886dcf169277229f6f466df266daaa311c47ca8ad2d5		unchanged
+exports/2026-11-28-coil-loss/M2/run.json	3891	e7b4b902cfd8ea0ed8a239618930ab952e34a3a3b2e12270b2d2b4cdc2596b6c	00f1d4800e3a097b2cc74bc0dee9a83545ad5cfe02f7b56cc5154c634a518ba8	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/M3/evidence.json	2916	54367430ba410821d6e24dcb0ada9598b83ae89ec1cce1b3a2fd3f36cca42ca2		unchanged
+exports/2026-11-28-coil-loss/M3/points.csv	629	47520f226f2f18349eda256e2c3a28bcac6f9d82071323d697adf5d5c4e45a70		unchanged
+exports/2026-11-28-coil-loss/M3/raw.csv	386772	cee5c9f1cf51fe0edb0e66edf750c6f57ee1f4587d1680bb3be9a3b84fe1e951		unchanged
+exports/2026-11-28-coil-loss/M3/run.json	3889	128b2e2d41793b2cb9a69a0805d0b657e64a764ea66f5afd9f49a1a56c0510e0	2541f7eaf9f5027ecd67c5f20f907e9c11785fa67ab638d99ca581b830d4637a	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/M4-first-attempt-invalid.md	1916	905aa6d076d0edc37f7633f3ecc820f72c565a920c68de872c717b8ca306d22c		unchanged
+exports/2026-11-28-coil-loss/M5/evidence.json	2916	e6fc5e6931938cd6f1fc6259714b285ab2aa613a8cb3f673a10abba7a48e0a0e		unchanged
+exports/2026-11-28-coil-loss/M5/points.csv	614	ff1451f5f35e75e505e3b0e2695d5eee635ab4e54f793d2a0b07b511d001bb18		unchanged
+exports/2026-11-28-coil-loss/M5/raw.csv	386486	f1764da0aea8fccf2d4068a17e0fbd29cb8523d59f43f080828edbfd807817ac		unchanged
+exports/2026-11-28-coil-loss/M5/run.json	3894	831367661d4b05adbfd26150d1ccb7f7eb13749f0a87def5d14da6c5cdbf1f53	b9d1fc53bcf1212d9a5c7e8d5b85cc79cd42531d8e607e742e29b18634f927ff	field replaced: run.device.serial = AD3-001
+exports/2026-11-28-coil-loss/evaluation-2026-11-28/ledger.json	10463	7d3fd745c7487563bd94e91515b58b23c7c4b76a7e628e5656779ea6fb9994ed		unchanged
+exports/2026-11-28-coil-loss/evaluation-2026-11-28/log.json	2904	cb3901ef0a04c93ca4e23e40b0c9b773b285af5d7e3e1ccc543693bbc50be245		unchanged
+exports/2026-11-28-coil-loss/evaluation-2026-11-28/report.md	13011	5757d4431aabc7fa4a71621fc4ecb1e2f9811ba82aacb7a1f1f292133a0c7fc1		unchanged
+exports/2026-11-28-coil-loss/evaluation-2026-11-28/run.json	6740	69f9a85dd204381471f8f1e2a21dcf85ff8d7a35ec5b381d3fedd4c2ef4752db		unchanged
+exports/2026-11-28-coil-loss/meter-check-exploratory.md	994	9ccf978af34c72cd2cda37a3831e5ca2148f7525fdca9da84ae1ae392a19d475		unchanged
+exports/2026-11-28-coil-loss/readings.toml	3749	f8ea7862b0f6c6f9b28bc30541467810fbfd0d712d31faa98e187a02e43bfd82		unchanged
+exports/2026-11-28-coil-loss/session.toml	3397	1fc0c2e1c43aa207707d46b7d408f4c378de074781edd9fe6fcbcedbfa07c6ab		unchanged

@@ -1,0 +1,79 @@
+# The records of the bench session of the coil-loss follow-up (the
+# registration of Issue #619). Copy this file to session.toml in a new
+# folder, beside readings.toml (copied from readings-template.toml) and the
+# physics lab's export of every sweep (its --out folder, with raw.csv and
+# run.json), and fill in every field.
+# Times: ISO 8601 with the offset from UTC, e.g. 2026-12-03T13:10:00+01:00.
+# No rule reads the plug-in time, the room, or the device's conditions
+# (which the physics lab writes into each run.json); they are reported.
+# M0 starts no earlier than 45 minutes after the plug-in.
+
+[session]
+plugged_in = "2026-11-28T06:57:00+01:00"         # the time the AD3 was plugged in
+# The digest of outcome-code.toml on main before M1, as the supervisor
+# recorded it on Issue #619 after part 2's merge (a GitHub comment,
+# time-stamped by GitHub). The reference is that recorded digest, not the
+# file: a pin that differs from it is a deviation, and the outcomes are
+# exploratory.
+outcome_code_pin = "974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801"
+
+[room]
+temperature_c = "18.5"      # the room temperature read before M0, degrees C
+time = "2026-11-28T07:00:00+01:00"  # when it was read
+instrument = "the room thermostat (wall thermostat of the room)"  # the thermometer read
+
+# One [[sweep]] per run, in the order made: M0, M1, M2, M3, then M5 after M4.
+# A failed run (an invalid capture, a refused output) is repeated once and
+# both are kept: write the failed one with outcome = "failed" and its reason,
+# then the repeat with attempt = 2. Each attempt has its own export folder
+# (for example M2 for the failed run and M2-repeat for its repeat); a failed
+# run that stopped before the physics lab wrote an export has none: write
+# directory = "" and say so in its reason. A second failure stops the session.
+
+[[sweep]]
+measurement = "M0"      # conditioning sweep: scope 1+ at W1, 2+ at node A
+attempt = 1
+directory = "M0"        # the --out folder of this run, inside this folder
+outcome = "failed"      # "valid" or "failed"
+reason = "started 4 minutes after the plug-in, by mistake, instead of after the registered 45 minutes; the run itself completed and its capture is valid; kept in full; repeated after the wait as attempt 2 (owner's decision of 2026-11-28)"
+
+[[sweep]]
+measurement = "M0"      # conditioning sweep, the repeat after the wait
+attempt = 2
+directory = "M0-repeat"
+outcome = "valid"
+reason = ""
+
+[[sweep]]
+measurement = "M1"      # capacitor sweep: scope 1+ at W1, 2+ at node A
+attempt = 1
+directory = "M1"
+outcome = "valid"
+reason = ""
+
+[[sweep]]
+measurement = "M2"      # R-L node sweep: scope 1+ at W1, 2+ at the R-L node
+attempt = 1
+directory = "M2"
+outcome = "valid"
+reason = ""
+
+[[sweep]]
+measurement = "M3"      # same-node sweep: scope 1+ and 2+ both at W1
+attempt = 1
+directory = "M3"
+outcome = "valid"
+reason = ""
+
+[[sweep]]
+measurement = "M5"      # M2 again, the parts put back (repeatability)
+attempt = 1
+directory = "M5"
+outcome = "valid"
+reason = ""
+
+# Notes of the session (no rule reads them). The AD3 was unplugged for M4
+# at about 07:50 and plugged in again shortly before M5 (started 08:25:54
+# local); the board was at 22 C at the start of M5, against 43 C at M2.
+# M4: a first set of fifteen readings was taken with the dial on 200 mV and
+# is kept in M4-first-attempt-invalid.md; readings.toml holds the repeat.

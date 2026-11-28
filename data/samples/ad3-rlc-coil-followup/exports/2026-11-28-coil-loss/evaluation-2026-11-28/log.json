@@ -1,0 +1,82 @@
+[
+ {
+  "number": 1,
+  "kind": "decision",
+  "content": {
+   "subject": "registration",
+   "decision": "frozen",
+   "reason": "the registration 3e4cfd1ae9a4fde8e116df21c3b5035ef05b63322605f94e25a466ee13f0a429 is frozen at the merge commit d4d9a16d8a71fdaefb27c4b684dba622e5f82280 of 2026-11-26T15:43:26+00:00 (pull request 625, after the owner's approving review of its exact head)",
+   "revisit": "a change of the text between the markers is a new registration",
+   "by": "the owner (the merge)"
+  },
+  "previous": "",
+  "digest": "dfd01f5543883f37dd257c46b6ce0b796461a0bcb884da5cfed13cb07e131722"
+ },
+ {
+  "number": 2,
+  "kind": "decision",
+  "content": {
+   "subject": "outcome-code",
+   "decision": "the pinned code",
+   "reason": "the identity of the outcome code: 974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801; pinned for the follow-up at 2026-11-26T18:33:00+00:00: 974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801",
+   "revisit": "a change of this code after M1 is a deviation, and its result exploratory",
+   "by": "the workspace (this run)"
+  },
+  "previous": "dfd01f5543883f37dd257c46b6ce0b796461a0bcb884da5cfed13cb07e131722",
+  "digest": "788908940bb45f4e7f53ba02ef25651d80262feae926634c3946d2a5fa5aa62b"
+ },
+ {
+  "number": 3,
+  "kind": "finding",
+  "content": {
+   "key": "G1",
+   "claim": "G1",
+   "reviewer": "the registration",
+   "text": "Is the loss near the resonance the DC resistance or an AC loss?",
+   "kind": "evidence",
+   "check": "rule G1",
+   "state": "accepted"
+  },
+  "previous": "788908940bb45f4e7f53ba02ef25651d80262feae926634c3946d2a5fa5aa62b",
+  "digest": "cac5b90f8fc28c69b903851285e7f2b06d619c1dbaf1e541e309b6a0a0319d62"
+ },
+ {
+  "number": 4,
+  "kind": "evidence",
+  "content": {
+   "finding": "G1",
+   "check": "rule G1: inconclusive",
+   "passed": null,
+   "digest": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4"
+  },
+  "previous": "cac5b90f8fc28c69b903851285e7f2b06d619c1dbaf1e541e309b6a0a0319d62",
+  "digest": "8f68d6b77cf251d0a0c076f090e056605b7e080434ea43d5490ef0626a45ff8c"
+ },
+ {
+  "number": 5,
+  "kind": "finding",
+  "content": {
+   "key": "G2",
+   "claim": "G2",
+   "reviewer": "the registration",
+   "text": "Are the rise and the phase residual of the circuit or of the channels?",
+   "kind": "evidence",
+   "check": "rule G2",
+   "state": "accepted"
+  },
+  "previous": "8f68d6b77cf251d0a0c076f090e056605b7e080434ea43d5490ef0626a45ff8c",
+  "digest": "88433822767f6972e1a39a374a89c2e0303a2b8f96ba23373de486a49d0cdb59"
+ },
+ {
+  "number": 6,
+  "kind": "evidence",
+  "content": {
+   "finding": "G2",
+   "check": "rule G2: inconclusive",
+   "passed": null,
+   "digest": "dcf9d3d0ac3995d451ece62f3985fa25ad745f30cfa98b1d2ffd7f6fddde9ea4"
+  },
+  "previous": "88433822767f6972e1a39a374a89c2e0303a2b8f96ba23373de486a49d0cdb59",
+  "digest": "69a9ae4a8bc58f5e6a5d57d66d2b0a44bf4f0c93c1bc9519a6a7e90d1f46185e"
+ }
+]
