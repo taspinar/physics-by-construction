@@ -4,7 +4,7 @@ the device serial is replaced everywhere, and the frozen registration's
 rules, applied in CI to the repository's part with the pinned outcome code,
 give the evaluation of 2026-11-28 (its outcomes, its quantities to the
 product's cross-platform tolerance, its report, ledger, and log), with the
-two differences the dossier explains. No test reads Zenodo or the archive."""
+differences the dossier explains. No test reads Zenodo or the archive."""
 
 import csv
 import hashlib
@@ -102,7 +102,9 @@ def close(computed: float, recorded: float) -> bool:
 def same_structure(computed, recorded, where: str = "") -> None:
     """The same keys, lengths, words, and flags; floats to the tolerance;
     the SHA-256 of a state (the digests that depend on its last bits) by
-    form only."""
+    form only, and the versions of the recorded environment (the Python
+    and numpy of the machine that ran, which CI's may differ from) by
+    their keys only."""
     if isinstance(recorded, dict):
         assert isinstance(computed, dict) and computed.keys() == recorded.keys(), where
         for key, value in recorded.items():
@@ -111,6 +113,10 @@ def same_structure(computed, recorded, where: str = "") -> None:
                     assert HEX.fullmatch(computed[key]), f"{where}.{key}"
                 else:
                     assert computed[key] == "", f"{where}.{key}"
+                continue
+            if key == "environment" and isinstance(value, dict):
+                assert computed[key].keys() == value.keys(), f"{where}.{key}"
+                assert all(isinstance(v, str) and v for v in computed[key].values())
                 continue
             same_structure(computed[key], value, f"{where}.{key}")
     elif isinstance(recorded, list):
