@@ -55,7 +55,7 @@ The research of 2026-11-08 into open datasets for the measured-data labs is reco
 <!-- generated: conversions -->
 - Aalborg submerged-bar wave flume: no conversion; ZIP of CSV files (plus input archives and a PDF readme)
 - F145 bench sessions, series RLC and LED pair on an Analog Discovery 3 (Issue #614): no conversion; CSV (plain text), JSON, Markdown, SVG; the archive a ZIP of the same
-- F155 coil-loss follow-up, the registered bench session of 2026-11-28 on an Analog Discovery 3 (Issue #619): no conversion; TOML, CSV (plain text), JSON, Markdown, SVG; the archive a ZIP of the same
+- F155 coil-loss follow-up, the registered bench session of 2026-11-28 on an Analog Discovery 3 (Issue #619): no conversion; TOML, CSV (plain text), JSON, Markdown; the archive a ZIP of the same with the SVG figures and one HTML file
 - F140 pilot, series RLC on an Analog Discovery 3 (Issue #508): no conversion; CSV (plain text) and JSON
 - Bayreuth RLC impedance (EM8, Issue #418): no conversion; JSON (plain text)
 - COBE FIRAS monopole spectrum (RR8, F155 part 1, Issue #619): no conversion; plain text (whitespace-separated columns)

@@ -64,7 +64,8 @@ artifacts:
     digests, the attempt, the evaluation). The SHA-256 of raw.csv in it is the original file's.
 - name: report.md and frequency-response.svg
   type: processed-measured
-  description: The physics lab's report and figure of each sweep, as exported (not edited).
+  description: The physics lab's report and figure of each sweep, as exported (not edited). The figure is in the
+    archive only (the repository commits no generated image outside site/assets/).
 - name: readings.toml
   type: raw-measured
   description: The fifteen readings of M4 on the 200 ohm range of the multimeter (Z1, R_dc_bb, R_dc, R_s_bb, Z2,
@@ -89,7 +90,7 @@ calibration: 'The AD3: the factory calibration, not adjusted (each run record sa
   +- 1 %, and the check after M5 read the loose resistor at 10.1 ohm; the cause is not established.'
 schema: 'Under exports/2026-11-28-coil-loss/: session.toml, readings.toml, the two notes, one folder per sweep attempt
   (M0, M0-repeat, M1, M2, M3, M5) with run.json, points.csv (frequency_hz, amplitude_v, gain, phase_deg), evidence.json,
-  report.md, frequency-response.svg, and raw.csv (point, frequency_hz, amplitude_v, t_s, source_v, response_v) where
+  report.md, and raw.csv (point, frequency_hz, amplitude_v, t_s, source_v, response_v) where
   committed, and evaluation-2026-11-28/ (run.json, ledger.json, log.json, report.md). Under
   exports/2026-11-26-pilot-input-diagnostic/: the same files of one sweep, without raw.csv. MANIFEST.tsv: path, bytes,
   sha256, original_sha256, derivation.'
@@ -112,11 +113,12 @@ uncertainty: 'The registered model of the readings (the plan''s registration, "M
   3 ohm), so every registered quantity that rests on R_s_bb (R_L, R_L0, L, C, Rise, D) rests on a reading the check
   of the registration puts outside its band.'
 size:
-  description: 'The repository holds 51 files, 2,794,668 bytes: every file of both folders but the raw samples of the
-    early M0 and of the diagnostic sweep and the evaluation''s view.html, with MANIFEST.tsv, README.md, CITATION.cff.
+  description: 'The repository holds 44 files, 2,424,584 bytes: every file of both folders but the raw samples of the
+    early M0 and of the diagnostic sweep, the evaluation''s view.html, and the seven figures frequency-response.svg,
+    with MANIFEST.tsv, README.md, CITATION.cff.
     The archive holds all 51 files of the two folders and the packager''s three (54 files), 1,194,207 bytes
     compressed.'
-format: TOML, CSV (plain text), JSON, Markdown, SVG; the archive a ZIP of the same
+format: TOML, CSV (plain text), JSON, Markdown; the archive a ZIP of the same with the SVG figures and one HTML file
 reader: pbc.data.reference.ad3_rlc_coil_followup (attempts, readings, points, the tomllib, csv and json modules of
   the standard library); the registered rules are pbc.products.research_workspace.followup.evaluate with the pinned
   outcome code. No new dependency.
@@ -135,23 +137,18 @@ samples:
   derivation: written by the packager pbc.data.publish from data/publish/ad3-rlc-coil-followup.toml
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: MANIFEST.tsv
-  sha256: c4c152a17e634fb37fd98d193416c436f9c69ec019498d48997d594aa55fb0ba
-  bytes: 7165
+  sha256: edd47f4bb480fd7b9e971dc52d6f394aa6acbe42d09c49180a68df5048fb71d1
+  bytes: 6189
   derivation: written by the packager (path, bytes, SHA-256, the original's SHA-256 where changed, and the derivation of every other file)
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: README.md
-  sha256: 676ac89cb139e93309c79cac38611aacc671a9b50bb18bf149b8faa61d8e4d95
-  bytes: 7060
+  sha256: a4a5f70f44507d6f684eae09dbebce77ac8ce43d3b49ed9c73f62a9124d1fd24
+  bytes: 7005
   derivation: written by the packager pbc.data.publish from data/publish/ad3-rlc-coil-followup.toml
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-26-pilot-input-diagnostic/evidence.json
   sha256: 2e56ccbd63fd68d66df3b202d51a70c820e1223f1ff6d77ede091b7fde3f00f6
   bytes: 3013
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-26-pilot-input-diagnostic/frequency-response.svg
-  sha256: 44ac7927312692a59e60041933d99a24a50f912d8581b90b2e872b2ab6ecabc8
-  bytes: 53976
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-26-pilot-input-diagnostic/points.csv
@@ -174,11 +171,6 @@ samples:
   bytes: 3011
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-28-coil-loss/M0/frequency-response.svg
-  sha256: 510a26ef718c394a82f93261039400020179372813f7b702aa2327242a3876fe
-  bytes: 53971
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-28-coil-loss/M0/points.csv
   sha256: 823db794411f3672ed562c7d76340a0e3b7e8828d91434fb97bb110fe284a618
   bytes: 878
@@ -197,11 +189,6 @@ samples:
 - path: exports/2026-11-28-coil-loss/M0-repeat/evidence.json
   sha256: 1c23216125f66808cb4a407d77e6ae883abc9579eda4fca4c2cd83d8907c9120
   bytes: 3014
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-28-coil-loss/M0-repeat/frequency-response.svg
-  sha256: 3efaf08d39bccf02fe3f3eaf701eec3479c222a9094330724eb7bfeccaf5c6d2
-  bytes: 53979
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-28-coil-loss/M0-repeat/points.csv
@@ -229,11 +216,6 @@ samples:
   bytes: 3014
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-28-coil-loss/M1/frequency-response.svg
-  sha256: 5409e105e19abb134c8cfbb6f2ba79c0085d6e04d6911a8c187f06385688c920
-  bytes: 53976
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-28-coil-loss/M1/points.csv
   sha256: f9749eb0bb20e5f5c584de0284f05b55252a47e382b6028679c3f012e1251f64
   bytes: 878
@@ -259,11 +241,6 @@ samples:
   bytes: 2916
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-28-coil-loss/M2/frequency-response.svg
-  sha256: 72c488cd3b826073aca8fe88300c5256e25c21aea1518935fa037eff4e4a04c2
-  bytes: 51028
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-28-coil-loss/M2/points.csv
   sha256: 42470fbd3c8527f4e432fa7cddedff13e5ac6174268b7366f488199864a39725
   bytes: 612
@@ -287,11 +264,6 @@ samples:
 - path: exports/2026-11-28-coil-loss/M3/evidence.json
   sha256: 54367430ba410821d6e24dcb0ada9598b83ae89ec1cce1b3a2fd3f36cca42ca2
   bytes: 2916
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-28-coil-loss/M3/frequency-response.svg
-  sha256: e2eacdb21bc3373e85b02b513a212a4ac8d86494035a738976e455166bf5edb8
-  bytes: 51085
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-28-coil-loss/M3/points.csv
@@ -322,11 +294,6 @@ samples:
 - path: exports/2026-11-28-coil-loss/M5/evidence.json
   sha256: e6fc5e6931938cd6f1fc6259714b285ab2aa613a8cb3f673a10abba7a48e0a0e
   bytes: 2916
-  derivation: the recorded file, byte for byte
-  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
-- path: exports/2026-11-28-coil-loss/M5/frequency-response.svg
-  sha256: e9ca395b832ad387d8742ed7e6c94a383fd9521870893dc9cd4d08bc5f6279d4
-  bytes: 51038
   derivation: the recorded file, byte for byte
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-28-coil-loss/M5/points.csv

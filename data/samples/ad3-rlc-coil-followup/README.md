@@ -9,7 +9,7 @@ The registered bench session of the coil-loss follow-up of the project Physics b
 
 ## Contents
 
-The part of the archive kept in the repository, under `exports/<export>/`: `session.toml`, `readings.toml`, `M4-first-attempt-invalid.md`, `meter-check-exploratory.md`, `M*/evidence.json`, `M*/frequency-response.svg`, `M*/points.csv`, `M*/report.md`, `M*/run.json`, `M0-repeat/raw.csv`, `M1/raw.csv`, `M2/raw.csv`, `M3/raw.csv`, `M5/raw.csv`, `evaluation-2026-11-28/*.json`, `evaluation-2026-11-28/report.md` of `2026-11-28-coil-loss`, and `evidence.json`, `frequency-response.svg`, `points.csv`, `report.md`, `run.json` of `2026-11-26-pilot-input-diagnostic`. The complete files are in the archive `ad3-rlc-coil-followup-1.0.0.zip` (1194207 bytes, SHA-256 d892cf68bf27c9e71d27f35ce31e60a3d92b6285270576668203df44a4286273).
+The part of the archive kept in the repository, under `exports/<export>/`: `session.toml`, `readings.toml`, `M4-first-attempt-invalid.md`, `meter-check-exploratory.md`, `M*/evidence.json`, `M*/points.csv`, `M*/report.md`, `M*/run.json`, `M0-repeat/raw.csv`, `M1/raw.csv`, `M2/raw.csv`, `M3/raw.csv`, `M5/raw.csv`, `evaluation-2026-11-28/*.json`, `evaluation-2026-11-28/report.md` of `2026-11-28-coil-loss`, and `evidence.json`, `points.csv`, `report.md`, `run.json` of `2026-11-26-pilot-input-diagnostic`. The complete files are in the archive `ad3-rlc-coil-followup-1.0.0.zip` (1194207 bytes, SHA-256 d892cf68bf27c9e71d27f35ce31e60a3d92b6285270576668203df44a4286273).
 
 ## Changes to the exported files
 

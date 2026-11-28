@@ -13,12 +13,12 @@ The complete record is two folders, 51 files: `2026-11-28-coil-loss` (the sessio
 | In the repository (`data/samples/ad3-rlc-coil-followup/`) | Only in the archive |
 |---|---|
 | `session.toml`, `readings.toml`, `M4-first-attempt-invalid.md`, `meter-check-exploratory.md` | |
-| of every sweep (M0, M0-repeat, M1, M2, M3, M5, and the diagnostic): `run.json`, `points.csv`, `evidence.json`, `report.md`, `frequency-response.svg` | |
+| of every sweep (M0, M0-repeat, M1, M2, M3, M5, and the diagnostic): `run.json`, `points.csv`, `evidence.json`, `report.md` | `frequency-response.svg` of every sweep (the physics lab's figure, a rendering of `points.csv`) |
 | `raw.csv` of M0-repeat, M1, M2, M3, M5 (the attempts the registered rules and reports read) | `raw.csv` of the early M0 (attempt 1, recorded as failed) and of the diagnostic sweep |
 | `evaluation-2026-11-28/`: `run.json`, `ledger.json`, `log.json`, `report.md` | `evaluation-2026-11-28/view.html` (a rendering of the other four, 100,137 bytes) |
 | `MANIFEST.tsv`, `README.md`, `CITATION.cff` (the packager's) | the archive's own `MANIFEST.tsv`, `README.md`, `CITATION.cff` |
 
-The rule depends on no result: the raw samples of the attempts that `session.toml` records as the valid ones are kept, and the raw samples of the two sweeps no registered rule or report reads are not, with the evaluation's HTML rendering. Before this dataset, `data/samples` held 30,666,280 of the 33,554,432 bytes the dataset check allows (`src/pbc/data/check.py`). The committed part is 2,794,668 bytes in 51 files, the largest 568,534 bytes, so 93,484 bytes remain. That is within the caps of 2 MB per file and 8 MB per dataset. With the evaluation's `view.html` the part would have exceeded the room. The archive is `ad3-rlc-coil-followup-1.0.0.zip`, 1,194,207 bytes; its SHA-256 is on the card and in the committed `README.md`.
+The rule depends on no result: the raw samples of the attempts that `session.toml` records as the valid ones are kept, and the raw samples of the two sweeps no registered rule or report reads are not, with the two kinds of rendering: the evaluation's HTML view and the figure of every sweep. The repository commits no generated image outside `site/assets/` (the rule `committed-artifact` of `tests/lessons`), and every figure can be drawn again from the committed `points.csv`. Before this dataset, `data/samples` held 30,666,280 of the 33,554,432 bytes the dataset check allows (`src/pbc/data/check.py`). The committed part is 2,424,584 bytes in 44 files, the largest 568,534 bytes, so 463,568 bytes remain. That is within the caps of 2 MB per file and 8 MB per dataset. The archive is `ad3-rlc-coil-followup-1.0.0.zip`, 1,194,207 bytes; its SHA-256 is on the card and in the committed `README.md`.
 
 **The packager.** Both parts are the output of `pbc.data.publish`, run with the declaration ("Publishing a measured dataset" in `docs/datasets/README.md`). The committed files are not edited by hand. The session's folder holds a folder per sweep, so this part added two things to the packager, both without a change of its output for `ad3-bench-2026-11`: a list of the files of one export kept in the repository (`[[repository.export]]`, paths or patterns, each pattern required to name a file), and a replaced field's file given as a pattern (`M*/run.json`). The originals stay unchanged outside the repository (the owner's read-only copy); this session ran the packager on that copy.
 
@@ -88,7 +88,7 @@ By the registered model the zero is z = 5.15 Ω with dz = 2.5 Ω, so the net val
 
 ## The evaluation by the registered rules
 
-The supervisor evaluated the session on 2026-11-28 with the Research Workspace of `main` at a1109da, whose outcome code is the pinned one (`evaluation-2026-11-28/`). This part applied the same rules, unchanged, to the session folder of the repository's part, copied beside the example `products/research-workspace/examples/coil-loss/`. The follow-up's state it computes has the same SHA-256 as the evaluation's (`dcf9d3d0ac39…`, recorded in its `ledger.json`), and its `report.md`, `ledger.json`, and `log.json` are the evaluation's byte for byte. Its `run.json` differs in the SHA-256 of the six run records whose serial was replaced and in the absent `M0/raw.csv` of the early M0, a failed attempt that no rule reads. Those are the only differences.
+The supervisor evaluated the session on 2026-11-28 with the Research Workspace of `main` at a1109da, whose outcome code is the pinned one (`evaluation-2026-11-28/`). This part applied the same rules, unchanged, to the session folder of the repository's part, copied beside the example `products/research-workspace/examples/coil-loss/`. The follow-up's state it computes has the same SHA-256 as the evaluation's (`dcf9d3d0ac39…`, recorded in its `ledger.json`), and its `report.md`, `ledger.json`, and `log.json` are the evaluation's byte for byte. Its `run.json` differs in the SHA-256 of the six run records whose serial was replaced in the absent `M0/raw.csv` of the early M0, a failed attempt that no rule reads, and in the absent figure `frequency-response.svg` of each of the six sweeps, which no rule reads. Those are the only differences.
 
 | Outcome | Value | As the registration words it |
 |---|---|---|
@@ -123,7 +123,7 @@ The early M0, made 4 minutes after the plug-in with the board at 18.8 °C, has f
 | Artifact | Type |
 |---|---|
 | `raw.csv`, `readings.toml`, `session.toml`, the two notes | `raw-measured` |
-| `run.json`, `points.csv`, `evidence.json`, `report.md`, `frequency-response.svg`, the evaluation's files | `processed-measured` |
+| `run.json`, `points.csv`, `evidence.json`, `report.md`, the evaluation's files, and in the archive `frequency-response.svg` | `processed-measured` |
 
 ## Reference figure
 
@@ -139,7 +139,7 @@ The code is `src/pbc/data/reference/ad3_rlc_coil_followup.py`. **Status label: p
 
 ## The CI evaluation
 
-`tests/unit/test_data_ad3_rlc_coil_followup.py` applies the registered rules in the build to the repository's part, with no device, no meter, no network, and no Zenodo. It copies the example and the session folder into a temporary project and runs the original track (`pbc.products.research_workspace.original.run`). It asserts the outcomes (G1 and G2 `inconclusive`, the precondition not met, the deviation, the R_s_bb report) and the follow-up's quantities to `agent_campaign.TOLERANCE` (1e-6) relative, without an absolute floor above the values compared. It also asserts that the report, the ledger, and the log are the evaluation's, and that the evaluation's `run.json` differs only as stated above, each changed digest being the original's in `MANIFEST.tsv`. On the machine that recorded the evaluation (macOS) the recomputation is the evaluation byte for byte.
+`tests/unit/test_data_ad3_rlc_coil_followup.py` applies the registered rules in the build to the repository's part, with no device, no meter, no network, and no Zenodo. It copies the example and the session folder into a temporary project and runs the original track (`pbc.products.research_workspace.original.run`). It asserts the outcomes (G1 and G2 `inconclusive`, the precondition not met, the deviation, the R_s_bb report) and the follow-up's quantities to `agent_campaign.TOLERANCE` (1e-6) relative, without an absolute floor above the values compared. It also asserts that the report, the ledger, and the log are the evaluation's, and that the evaluation's `run.json` differs only as stated above, each changed digest being the original's in `MANIFEST.tsv` and each absent file being one the archive alone holds. On the machine that recorded the evaluation (macOS) the recomputation is the evaluation byte for byte.
 
 ## Rights
 

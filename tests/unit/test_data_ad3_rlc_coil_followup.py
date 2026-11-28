@@ -313,9 +313,10 @@ def test_the_recomputation_is_the_evaluation_of_2026_11_28(evaluated):
     numbers to the tolerance or to the last printed digit); its run.json is
     the evaluation's but for the session's digests, which differ only where
     the dossier says: the six run records whose serial was replaced (each
-    recorded digest is the original's in MANIFEST.tsv) and the raw samples
+    recorded digest is the original's in MANIFEST.tsv), the raw samples
     of the early M0, which are in the archive only (their digest is the one
-    M0's evidence log names)."""
+    M0's evidence log names), and the figure of each sweep, which is in the
+    archive only (the repository commits no generated image)."""
     same_printed(
         (evaluated / "report.md").read_text(encoding="utf-8"),
         (EVALUATION / "report.md").read_text(encoding="utf-8"),
@@ -347,11 +348,19 @@ def test_the_recomputation_is_the_evaluation_of_2026_11_28(evaluated):
         if path == "M0/raw.csv":
             assert path not in computed["session"] and digest == early_raw
             continue
+        if path.endswith("/frequency-response.svg"):
+            assert path not in computed["session"]
+            assert not (SESSION / path).exists()
+            continue
         row = listed[f"exports/{followup_data.SESSION}/{path}"]
         assert row["original_sha256"] == digest
         assert row["sha256"] == computed["session"][path]
     assert computed["session"].keys() <= recorded["session"].keys()
-    assert differs == {f"{name}/run.json" for name in SWEEPS} | {"M0/raw.csv"}
+    assert differs == (
+        {f"{name}/run.json" for name in SWEEPS}
+        | {f"{name}/frequency-response.svg" for name in SWEEPS}
+        | {"M0/raw.csv"}
+    )
 
 
 def test_the_verdicts_and_the_revised_claim_enter_the_log(evaluated, tmp_path):
