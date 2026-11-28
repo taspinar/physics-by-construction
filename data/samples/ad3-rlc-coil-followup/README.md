@@ -9,7 +9,7 @@ The registered bench session of the coil-loss follow-up of the project Physics b
 
 ## Contents
 
-The part of the archive kept in the repository, under `exports/<export>/`: `session.toml`, `readings.toml`, `M4-first-attempt-invalid.md`, `meter-check-exploratory.md`, `M*/evidence.json`, `M*/points.csv`, `M*/run.json`, `M0-repeat/raw.csv`, `M1/raw.csv`, `M2/raw.csv`, `M3/raw.csv`, `M5/raw.csv`, `evaluation-2026-11-28/*.json`, `evaluation-2026-11-28/report.md` of `2026-11-28-coil-loss`, and `evidence.json`, `points.csv`, `run.json` of `2026-11-26-pilot-input-diagnostic`. The complete files are in the archive `ad3-rlc-coil-followup-1.0.0.zip` (1194207 bytes, SHA-256 d892cf68bf27c9e71d27f35ce31e60a3d92b6285270576668203df44a4286273).
+The part of the archive kept in the repository, under `exports/<export>/`: `session.toml`, `readings.toml`, `M4-first-attempt-invalid.md`, `meter-check-exploratory.md`, `M*/evidence.json`, `M*/points.csv`, `M*/run.json`, `M0-repeat/raw.csv`, `M1/raw.csv`, `M2/raw.csv`, `M3/raw.csv`, `M5/raw.csv`, `evaluation-2026-11-28/*.json`, `evaluation-2026-11-28/report.md` of `2026-11-28-coil-loss`, and `evidence.json`, `points.csv`, `run.json` of `2026-11-26-pilot-input-diagnostic`. The complete files are in the archive `ad3-rlc-coil-followup-1.0.0.zip` (1194223 bytes, SHA-256 624021d45a9fe30ca6b6d4337a824a476e7678b14f098996197225b81acc5dde).
 
 ## Changes to the exported files
 
@@ -33,7 +33,7 @@ The part of the archive kept in the repository, under `exports/<export>/`: `sess
 
 ## Software
 
-- https://github.com/taspinar/physics-by-construction/commit/a1109da3e40da9366026699dea31a66fc4b94375: the physics lab's code of the sweeps of 2026-11-28 (the code digest in each evidence.json); the Research Workspace of the same commit made evaluation-2026-11-28 (code digest d21f41b578f927233cd94ca93cb7c5685c1a6834b6ffa8e16bb463ea08b56a06)
+- https://github.com/taspinar/physics-by-construction/commit/a1109da3e40da9366026699dea31a66fc4b94375: the physics lab's code of the sweeps of 2026-11-28, whose code digest is the one given here and in each evidence.json; the Research Workspace of the same commit made evaluation-2026-11-28 with the outcome code 974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801 (code digest d21f41b578f927233cd94ca93cb7c5685c1a6834b6ffa8e16bb463ea08b56a06)
 - https://github.com/taspinar/physics-by-construction/commit/b322b8d4a391101f65454da3031317c207a60294: the physics lab's code of the diagnostic sweep of 2026-11-26 (the same code digest at d4d9a16, a plan-only commit) (code digest 7d9ca42538392208d53f469f22fd1a226542d341752bf4efabb802548855630d)
 
 ## Citation

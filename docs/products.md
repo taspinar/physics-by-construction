@@ -1234,7 +1234,8 @@ The packager writes both parts from the declaration
 in folders of their own it now takes a list of one export's files for the
 repository (`[[repository.export]]`) and a replaced field's file as a
 pattern (`M*/run.json`), with its output for `ad3-bench-2026-11` unchanged.
-The DOI is the packager's placeholder until the owner reserves it.
+The DOI is `10.5281/zenodo.24622131`, which the owner reserved in the
+Zenodo draft on 2026-11-28; the owner checks the draft and publishes it.
 
 **The registered rules, applied unchanged.** No module of the pinned
 outcome code and no byte of the registration changed. The repository's
@@ -1247,8 +1248,8 @@ Zenodo, that it gives the evaluation of 2026-11-28: G1 and G2
 102.1 ohm, and every registered quantity to `agent_campaign.TOLERANCE`
 relative. The report, the ledger, and the log are the evaluation's; the
 run record differs only in the digests of the six run records whose serial
-was replaced and in the early M0's raw samples, which are in the archive
-only.
+was replaced, in the early M0's raw samples, and in the figure and the
+report of each of the six sweeps, which are in the archive only.
 
 **The verdicts and the revised claim** are
 `products/research-workspace/examples/coil-loss/followup-2026-11-28.toml`,

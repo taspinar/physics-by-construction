@@ -113,10 +113,10 @@ uncertainty: 'The registered model of the readings (the plan''s registration, "M
   3 ohm), so every registered quantity that rests on R_s_bb (R_L, R_L0, L, C, Rise, D) rests on a reading the check
   of the registration puts outside its band.'
 size:
-  description: 'The repository holds 37 files, 2,406,842 bytes: every file of both folders but the raw samples of the
+  description: 'The repository holds 37 files, 2,406,956 bytes: every file of both folders but the raw samples of the
     early M0 and of the diagnostic sweep, the evaluation''s view.html, and the seven figures frequency-response.svg with the seven reports report.md that link to them,
     with MANIFEST.tsv, README.md, CITATION.cff.
-    The archive holds all 51 files of the two folders and the packager''s three (54 files), 1,194,207 bytes
+    The archive holds all 51 files of the two folders and the packager''s three (54 files), 1,194,223 bytes
     compressed.'
 format: TOML, CSV (plain text), JSON, Markdown; the archive a ZIP of the same with the SVG figures and one HTML file
 reader: pbc.data.reference.ad3_rlc_coil_followup (attempts, readings, points, the tomllib, csv and json modules of
@@ -124,8 +124,8 @@ reader: pbc.data.reference.ad3_rlc_coil_followup (attempts, readings, points, th
   outcome code. No new dependency.
 archive:
   file: ad3-rlc-coil-followup-1.0.0.zip
-  bytes: 1194207
-  sha256: d892cf68bf27c9e71d27f35ce31e60a3d92b6285270576668203df44a4286273
+  bytes: 1194223
+  sha256: 624021d45a9fe30ca6b6d4337a824a476e7678b14f098996197225b81acc5dde
   doi: 10.5281/zenodo.24622131 (reserved by the owner in the Zenodo draft on 2026-11-28; the owner checks the
     draft's metadata and files and publishes it)
   note: Documentation only; no check, test, or build step reads the archive or Zenodo. Made by pbc.data.publish
@@ -137,13 +137,13 @@ samples:
   derivation: written by the packager pbc.data.publish from data/publish/ad3-rlc-coil-followup.toml
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: MANIFEST.tsv
-  sha256: 850bc5eae6b9d8adbe91c8170b2a26ad1cd4f5c17dcfcb404f2f6a863d7c8c3e
+  sha256: eaf8a6337d83c4f0555eea88e8bd604fde247d65a80fc56abdb02800f9aeb39c
   bytes: 5311
   derivation: written by the packager (path, bytes, SHA-256, the original's SHA-256 where changed, and the derivation of every other file)
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: README.md
-  sha256: 820253a3fcecc1907e438f3b54c7cc0676af19bbc86379fc6fbde6c4d3a27780
-  bytes: 6976
+  sha256: bdb001dcf503d2c4902857bd1c2e0f45e6247fdabf3600c245b78e0f0d5cccbc
+  bytes: 7090
   derivation: written by the packager pbc.data.publish from data/publish/ad3-rlc-coil-followup.toml
   test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
 - path: exports/2026-11-26-pilot-input-diagnostic/evidence.json
@@ -321,7 +321,7 @@ estimates:
     rules (the original track of the Research Workspace, its simulated controls included) and the other tests of the
     dataset: about 10 s.'
   memory: About 150 MB peak resident for the figure.
-  page_payload: 2.8 MB committed, none of it sent to a reader's browser.
+  page_payload: 2.4 MB committed, none of it sent to a reader's browser.
   ci: 'Offline: the committed files; the evaluation needs no device, no SDK, no meter, and no network.'
 decision:
   value: go

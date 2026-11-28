@@ -1,6 +1,6 @@
 path	bytes	sha256	original_sha256	derivation
 CITATION.cff	630	8165eeee6cdb4a9f24dc7db3cccd2b93de63eb9182ca54c68eb0745afeef2d2b		written by the packager
-README.md	6976	820253a3fcecc1907e438f3b54c7cc0676af19bbc86379fc6fbde6c4d3a27780		written by the packager
+README.md	7090	bdb001dcf503d2c4902857bd1c2e0f45e6247fdabf3600c245b78e0f0d5cccbc		written by the packager
 exports/2026-11-26-pilot-input-diagnostic/evidence.json	3013	2e56ccbd63fd68d66df3b202d51a70c820e1223f1ff6d77ede091b7fde3f00f6		unchanged
 exports/2026-11-26-pilot-input-diagnostic/points.csv	881	5ecaf439f1e29f2ccbd446f6f212e3d5c5f91ad713c37f034d6f24cc33f8b69d		unchanged
 exports/2026-11-26-pilot-input-diagnostic/run.json	3942	28ab3586344393134b432863257e8dbb3f35a6b201cfe429ca15b9ff441da420	f940b30fffd27892424eb977bc33dbe3ecca2b2ad3b26e36ba399a9482a40c9a	field replaced: run.device.serial = AD3-001

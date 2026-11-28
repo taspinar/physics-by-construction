@@ -47,7 +47,7 @@ name = "Taspinar, Ahmet"
 [[software]]
 commit = "a1109da3e40da9366026699dea31a66fc4b94375"
 code_digest = "d21f41b578f927233cd94ca93cb7c5685c1a6834b6ffa8e16bb463ea08b56a06"
-description = "the physics lab's code of the sweeps of 2026-11-28 (the code digest in each evidence.json); the Research Workspace of the same commit made evaluation-2026-11-28"
+description = "the physics lab's code of the sweeps of 2026-11-28, whose code digest is the one given here and in each evidence.json; the Research Workspace of the same commit made evaluation-2026-11-28 with the outcome code 974bf992ec24115be479f69046cb1d04dfc5472b3c5752a1db2d699e9b831801"
 
 [[software]]
 commit = "b322b8d4a391101f65454da3031317c207a60294"

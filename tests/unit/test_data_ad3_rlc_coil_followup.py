@@ -32,9 +32,9 @@ EXAMPLE = REPO_ROOT / "products" / "research-workspace" / "examples" / "coil-los
 RECORD = EXAMPLE / "followup-2026-11-28.toml"
 SESSION = followup_data.session_dir(SAMPLE)
 EVALUATION = SESSION / followup_data.EVALUATION
-# The DOI of the archive: the packager's placeholder until the owner
-# reserves the DOI in the Zenodo draft; then this constant, the declaration,
-# and the packager's files change together.
+# The DOI of the archive, reserved by the owner in the Zenodo draft on
+# 2026-11-28: this constant, the declaration, and the packager's files
+# change together.
 DOI = "10.5281/zenodo.24622131"
 # The files of a session the workspace reads (its templates): the two
 # records and the sweeps' folders; the notes and the evaluation are not.

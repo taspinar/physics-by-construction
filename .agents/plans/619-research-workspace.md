@@ -1525,8 +1525,9 @@ dependency group.
     On this machine the follow-up's state is the evaluation's byte for
     byte (SHA-256 dcf9d3d0…, which its ledger records), and its report,
     ledger, and log are identical; its run record differs only in the
-    digests of the six run records whose serial was replaced and in the
-    early M0's raw samples, which are in the archive only. The test
+    digests of the six run records whose serial was replaced, in the
+    early M0's raw samples, and in the figure and the report of each of
+    the six sweeps, which are in the archive only. The test
     compares the quantities to `agent_campaign.TOLERANCE` relative and the
     printed numbers to their last digit, so that CI's Linux may differ in
     the last bits.
@@ -1544,8 +1545,8 @@ dependency group.
     verification refused them, since the repository commits no generated
     image outside `site/assets/`), and the report of every sweep
     (`report.md` links to the figure, which the documentation check
-    requires to exist). 2,406,842 bytes are committed in 37 files, and
-    481,310 of the 33,554,432 bytes of `data/samples` remain.
+    requires to exist). 2,406,956 bytes are committed in 37 files, and
+    481,196 of the 33,554,432 bytes of `data/samples` remain.
   - **The verdicts and the revised claim** are a record beside the example,
     entered into a project's log with the workspace's existing `decide`
     command (no new module in the package, which would have changed the
