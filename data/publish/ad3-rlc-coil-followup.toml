@@ -80,9 +80,11 @@ files = []
 # rule or report reads (the early M0, attempt 1, and the diagnostic sweep)
 # and the evaluation's view.html (a rendering of its run.json, report.md,
 # ledger.json, and log.json, 100 kB). Those three are in the archive only,
-# with the physics lab's figure of every sweep (frequency-response.svg, a
-# rendering of points.csv): the repository commits no generated image
-# outside site/assets/ (tests/lessons, the rule committed-artifact).
+# with the physics lab's figure and report of every sweep
+# (frequency-response.svg and report.md, renderings of points.csv and
+# evidence.json): the repository commits no generated image outside
+# site/assets/ (tests/lessons, the rule committed-artifact), and the report
+# links to the figure, which the documentation check requires to exist.
 [[repository.export]]
 export = "2026-11-28-coil-loss"
 files = [
@@ -92,7 +94,6 @@ files = [
   "meter-check-exploratory.md",
   "M*/evidence.json",
   "M*/points.csv",
-  "M*/report.md",
   "M*/run.json",
   "M0-repeat/raw.csv",
   "M1/raw.csv",
@@ -105,4 +106,4 @@ files = [
 
 [[repository.export]]
 export = "2026-11-26-pilot-input-diagnostic"
-files = ["evidence.json", "points.csv", "report.md", "run.json"]
+files = ["evidence.json", "points.csv", "run.json"]

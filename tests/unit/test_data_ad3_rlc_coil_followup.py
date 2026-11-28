@@ -315,8 +315,9 @@ def test_the_recomputation_is_the_evaluation_of_2026_11_28(evaluated):
     the dossier says: the six run records whose serial was replaced (each
     recorded digest is the original's in MANIFEST.tsv), the raw samples
     of the early M0, which are in the archive only (their digest is the one
-    M0's evidence log names), and the figure of each sweep, which is in the
-    archive only (the repository commits no generated image)."""
+    M0's evidence log names), and the figure and the report of each sweep,
+    which are in the archive only (the repository commits no generated
+    image, and each report links to its figure)."""
     same_printed(
         (evaluated / "report.md").read_text(encoding="utf-8"),
         (EVALUATION / "report.md").read_text(encoding="utf-8"),
@@ -348,7 +349,7 @@ def test_the_recomputation_is_the_evaluation_of_2026_11_28(evaluated):
         if path == "M0/raw.csv":
             assert path not in computed["session"] and digest == early_raw
             continue
-        if path.endswith("/frequency-response.svg"):
+        if path.endswith(("/frequency-response.svg", "/report.md")):
             assert path not in computed["session"]
             assert not (SESSION / path).exists()
             continue
@@ -359,6 +360,7 @@ def test_the_recomputation_is_the_evaluation_of_2026_11_28(evaluated):
     assert differs == (
         {f"{name}/run.json" for name in SWEEPS}
         | {f"{name}/frequency-response.svg" for name in SWEEPS}
+        | {f"{name}/report.md" for name in SWEEPS}
         | {"M0/raw.csv"}
     )
 

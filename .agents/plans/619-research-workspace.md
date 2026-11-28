@@ -1542,8 +1542,10 @@ dependency group.
     rendering of the other four files), and the figure of every sweep
     (`frequency-response.svg`, a rendering of `points.csv`: the first
     verification refused them, since the repository commits no generated
-    image outside `site/assets/`). 2,424,584 bytes are committed in 44
-    files, and 463,568 of the 33,554,432 bytes of `data/samples` remain.
+    image outside `site/assets/`), and the report of every sweep
+    (`report.md` links to the figure, which the documentation check
+    requires to exist). 2,406,842 bytes are committed in 37 files, and
+    481,310 of the 33,554,432 bytes of `data/samples` remain.
   - **The verdicts and the revised claim** are a record beside the example,
     entered into a project's log with the workspace's existing `decide`
     command (no new module in the package, which would have changed the
