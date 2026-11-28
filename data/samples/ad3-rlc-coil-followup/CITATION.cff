@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: If you use this dataset, please cite it as below.
+type: dataset
+title: "The coil-loss follow-up on the series RLC circuit of the F140 pilot, bench session of 2026-11-28 (Analog Discovery 3, multimeter)"
+version: "1.0.0"
+date-released: "2026-11-28"
+license: "CC-BY-4.0"
+doi: "10.5281/zenodo.24622131"
+repository-code: "https://github.com/taspinar/physics-by-construction"
+authors:
+  - family-names: "Taspinar"
+    given-names: "Ahmet"
+keywords:
+  - "series RLC circuit"
+  - "inductor loss"
+  - "preregistration"
+  - "frequency response"
+  - "Analog Discovery 3"
+  - "multimeter"
+  - "physics education"

@@ -1220,3 +1220,42 @@ record's configuration:
 
 The simulated and recorded modes record neither, and the pilot's command
 `run` is unchanged.
+
+## The Scientific Research Workspace, part 2b: the follow-up's evidence (F155, Issue #619, 2026-11-28)
+
+The owner made the registered bench session of the coil-loss follow-up on
+2026-11-28, and part 2b declares it as the dataset `ad3-rlc-coil-followup`
+(card `data/registry/ad3-rlc-coil-followup.yaml`, dossier
+`docs/datasets/ad3-rlc-coil-followup.md`): the six sweep exports (the early
+M0 included), the readings of M4, the session's records and notes, the
+evaluation made the same day, and the one diagnostic sweep of 2026-11-26.
+The packager writes both parts from the declaration
+`data/publish/ad3-rlc-coil-followup.toml`; for a session whose sweeps lie
+in folders of their own it now takes a list of one export's files for the
+repository (`[[repository.export]]`) and a replaced field's file as a
+pattern (`M*/run.json`), with its output for `ad3-bench-2026-11` unchanged.
+The DOI is the packager's placeholder until the owner reserves it.
+
+**The registered rules, applied unchanged.** No module of the pinned
+outcome code and no byte of the registration changed. The repository's
+part of the session, copied into `session/` beside the example, is read by
+the same `followup.evaluate`, and
+`tests/unit/test_data_ad3_rlc_coil_followup.py` asserts in CI, without
+Zenodo, that it gives the evaluation of 2026-11-28: G1 and G2
+`inconclusive`, the precondition not met, the deviation that M0 started
+4 minutes after the plug-in, R_s_bb reported at 3.08 ohm outside 97.9 to
+102.1 ohm, and every registered quantity to `agent_campaign.TOLERANCE`
+relative. The report, the ledger, and the log are the evaluation's; the
+run record differs only in the digests of the six run records whose serial
+was replaced and in the early M0's raw samples, which are in the archive
+only.
+
+**The verdicts and the revised claim** are
+`products/research-workspace/examples/coil-loss/followup-2026-11-28.toml`,
+worded as the registration words them and entered into a project's log
+with the workspace's `decide` command; a decision never changes what the
+evidence decided. The multimeter did not measure resistance correctly in
+the session, and the cause is not established; what the sweeps show
+without the meter (the -90 degree crossing of M1 against the repeated M0,
+the channels' relative response from M3) is reported as measured and
+scoped to this session.

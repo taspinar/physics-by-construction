@@ -1,0 +1,65 @@
+# The verdicts and the revised claim of the coil-loss follow-up, from the
+# registered bench session of 2026-11-28 (F155 part 2b, Issue #619). The
+# session is the dataset ad3-rlc-coil-followup; its folder in the
+# repository's part is data/samples/ad3-rlc-coil-followup/exports/2026-11-28-coil-loss.
+#
+# [outcomes] are what the registered rules give on that session, unchanged
+# (the pinned outcome code); tests/unit/test_data_ad3_rlc_coil_followup.py
+# recomputes them from the repository's part and compares. Each [[decision]]
+# is entered into the project's log with the workspace's own command, after
+# the run (products/research-workspace/README.md, "The follow-up's
+# evidence"):
+#
+#   uv run --locked python -m pbc.products.research_workspace decide \
+#       --project <dir> --subject <subject> --decision <decision> \
+#       --reason <reason> --revisit <revisit> --by <by>
+#
+# The words follow the registration (the plan's text between the markers):
+# an outcome that decides nothing is a result, reported as inconclusive; the
+# precondition's stated consequence; the meter check reported beside G1. No
+# explanation that is not established is introduced.
+
+dataset = "ad3-rlc-coil-followup"
+session = "exports/2026-11-28-coil-loss"
+
+[outcomes]
+status = "computed"
+g1 = "inconclusive"
+g2 = "inconclusive"
+g1_pilot = "not evaluated"
+precondition = false
+deviations = [
+  "M0 started 4 minutes after the plug-in, earlier than the registered 45 minutes",
+]
+notes = [
+  "R_s_bb reads 3.08 ohm, outside 97.9 to 102.1 ohm: a gross error of the meter or of the contacts (reported beside G1; it decides no outcome)",
+  "the precondition is not met: the conclusions are scoped to the circuit of M1 to M5; the pilot's discrepancy stays not evaluated for G1, and G2 (a property of the instrument) carries over",
+]
+
+[[decision]]
+subject = "G1"
+decision = "inconclusive"
+reason = "the registered rule G1 on the session of 2026-11-28: D = 2.77 ohm with u = 1.00 ohm meets neither |D| <= 2 u (accounted) nor D > 3 u and D > 5 ohm (short); an outcome that decides nothing is a result. D rests on R_s_bb, which reads 3.08 ohm, outside 97.9 to 102.1 ohm (a gross error of the meter or of the contacts; the cause is not established)"
+revisit = "a new registration with its own bench session; the frozen registration allows no further measurement"
+by = "the registered rule (the pinned outcome code)"
+
+[[decision]]
+subject = "G2"
+decision = "inconclusive"
+reason = "the registered rule G2 on the session of 2026-11-28: the mismatch is measurable (largest |dphi| 0.49 degrees, largest |dg| 0.017 from M3); Rise = -0.53 ohm <= 2 u_hi, but P1 = 5.82 degrees is not <= P0 / 2 = 3.19 degrees (not artefact), and Rise is not > 3 u_hi (not mixed); an outcome that decides nothing is a result"
+revisit = "a new registration with its own bench session; the frozen registration allows no further measurement"
+by = "the registered rule (the pinned outcome code)"
+
+[[decision]]
+subject = "precondition"
+decision = "not met"
+reason = "M2 against pilot run 3: L differs by -2.4 % and C by -7.7 %, beyond the registered 2 %. As registered, the conclusions are scoped to the circuit of M1 to M5; the pilot's discrepancy stays not evaluated for G1, and G2 (a property of the instrument) carries over"
+revisit = "a new registration with its own bench session"
+by = "the registered rule (the pinned outcome code)"
+
+[[decision]]
+subject = "coil-loss claim"
+decision = "revised"
+reason = "The registered follow-up of 2026-11-28 does not decide why the ideal series RLC model fails on the pilot's circuit: G1 and G2 are inconclusive, and the precondition is not met, so the pilot's discrepancy stays not evaluated for G1. The multimeter did not measure resistance correctly in this session (R_s_bb 3.08 ohm for a 100 ohm resistor; 10.1 ohm in the check after M5); the cause is not established, and every registered quantity that rests on R_s_bb rests on that reading. Measured without the meter and scoped to this session: the -90 degree crossing of M1 lies 67.9 Hz below that of the repeated M0, and the two channels' relative response on one node (M3) reaches |dphi| 0.49 degrees and |dg| 0.017, above the registered thresholds of 0.3 degrees and 0.003. The early M0, the first set of readings of M4 on the wrong range, and the meter check are kept and published with the dataset."
+revisit = "a new registration with its own bench session, with a meter that reads the 100 ohm resistor within 97.9 to 102.1 ohm"
+by = "part 2b (Issue #619), for the owner's review"

@@ -43,7 +43,7 @@ import sys
 import tomllib
 import zipfile
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 # A ZIP entry's time: the earliest the format holds, the same for every file.
@@ -62,7 +62,9 @@ class PublishError(ValueError):
 @dataclass(frozen=True)
 class Replacement:
     """Replace the value at ``field`` (a key path) of the JSON file ``file``
-    of every export by ``value``."""
+    of every export by ``value``. ``file`` is a path relative to the export,
+    or a pattern of one (``M*/run.json``; ``matches``), for an export whose
+    files lie in folders of their own."""
 
     file: str
     field: tuple[str, ...]
@@ -79,6 +81,23 @@ class RawSubset:
     file: str = "raw.csv"
     column: str = "protocol"
     keep: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ExportFiles:
+    """The files of one export kept in the repository besides the files
+    every export keeps: paths relative to the export, or patterns of them
+    (``matches``); each pattern must name at least one file."""
+
+    export: str
+    files: tuple[str, ...]
+
+
+def matches(relative: str, pattern: str) -> bool:
+    """Whether the path ``relative`` (POSIX, relative to its export) is
+    ``pattern``: a literal path, or one with ``*`` (within one folder),
+    ``**`` (across folders), ``?`` and ``[...]``."""
+    return PurePosixPath(relative).full_match(pattern)
 
 
 @dataclass(frozen=True)
@@ -100,6 +119,7 @@ class Declaration:
     raw_subsets: tuple[RawSubset, ...]
     notes: tuple[str, ...] = ()
     related: tuple[dict[str, str], ...] = field(default=())
+    export_files: tuple[ExportFiles, ...] = ()
 
     @property
     def root(self) -> str:
@@ -145,6 +165,10 @@ def load_declaration(path: Path) -> Declaration:
             ),
             notes=tuple(d.get("notes", ())),
             related=tuple(dict(r) for r in d.get("related", ())),
+            export_files=tuple(
+                ExportFiles(e["export"], tuple(e["files"]))
+                for e in repository.get("export", ())
+            ),
         )
     except KeyError as missing:
         raise PublishError(f"{path}: missing key {missing}") from None
@@ -155,6 +179,9 @@ def load_declaration(path: Path) -> Declaration:
             raise PublishError(
                 f"{path}: raw subset of an undeclared export {subset.export}"
             )
+    for kept in declaration.export_files:
+        if kept.export not in declaration.exports:
+            raise PublishError(f"{path}: files of an undeclared export {kept.export}")
     return declaration
 
 
@@ -255,11 +282,15 @@ def collect(declaration: Declaration, exports: Path) -> Package:
         folder = exports / name
         if not folder.is_dir():
             raise PublishError(f"no export folder {name}")
+        kept = [
+            p for e in declaration.export_files if e.export == name for p in e.files
+        ]
+        used: set[str] = set()
         for path in _export_files(folder):
             relative = path.relative_to(folder).as_posix()
             raw = path.read_bytes()
             entry = Entry(f"{EXPORTS}/{name}/{relative}", raw)
-            fields = [r for r in declaration.replacements if r.file == relative]
+            fields = [r for r in declaration.replacements if matches(relative, r.file)]
             if fields:
                 data, values = replace_fields(raw, fields, f"{name}/{relative}")
                 removed.update(values)
@@ -290,9 +321,15 @@ def collect(declaration: Declaration, exports: Path) -> Package:
                 )
             elif relative in declaration.repository_files:
                 repository.append(entry)
+            elif any(matches(relative, pattern) for pattern in kept):
+                used.update(p for p in kept if matches(relative, p))
+                repository.append(entry)
         for wanted in declaration.repository_files:
             if not (folder / wanted).is_file():
                 raise PublishError(f"{name}: no {wanted}")
+        for pattern in kept:
+            if pattern not in used:
+                raise PublishError(f"{name}: no file is {pattern}")
     return Package(declaration, archive, repository, removed)
 
 
@@ -361,11 +398,24 @@ def readme(p: Package, part: str) -> bytes:
             " original for every file that was changed."
         )
     else:
+        parts = [f"{', '.join(d.repository_files)} of every export"] * bool(
+            d.repository_files
+        )
+        parts += [
+            f"{', '.join(f'`{f}`' for f in e.files)} of `{e.export}`"
+            for e in d.export_files
+        ]
+        if d.raw_subsets:
+            parts.append(f"the raw subsets listed in `{MANIFEST}`")
+        kept = (
+            ", and ".join(parts)
+            if len(parts) <= 2
+            else "; ".join(parts[:-1]) + "; and " + parts[-1]
+        )
         lines.append(
             "The part of the archive kept in the repository, under"
             f" `{EXPORTS}/<export>/`:"
-            f" {', '.join(d.repository_files)} of every export, and the raw subsets"
-            f" listed in `{MANIFEST}`. The complete files are in the archive"
+            f" {kept}. The complete files are in the archive"
             f" `{p.archive_name}` ({p.archive_bytes} bytes,"
             f" SHA-256 {p.archive_sha256})."
         )
@@ -383,7 +433,7 @@ def readme(p: Package, part: str) -> bytes:
         )
     else:
         lines.append("- None.")
-    if part == "repository":
+    if part == "repository" and d.raw_subsets:
         lines.append(
             "- A raw subset holds the header and the rows named in its derivation,"
             " copied line by line from the published file."

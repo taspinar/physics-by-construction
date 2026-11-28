@@ -1,0 +1,97 @@
+{
+  "format": 1,
+  "record": {
+    "task": "the resonance frequency f0 and the quality factor Q of the prepared series RLC circuit, from its frequency response",
+    "hypothesis": "the circuit responds as a driven, damped linear oscillator: the phase of V_C / V_S is -90 degrees at f0 and the gain there is Q",
+    "assumptions": [
+      "the transient has settled before each record",
+      "the channels are ideal (gain 1, no offset, no delay)",
+      "the circuit stays the prepared one; nothing rewires it"
+    ],
+    "protocol_version": "f138-frequency-response-1",
+    "split": {
+      "probed": "the frequencies the route chose, within the envelope",
+      "reference": "the closed form of the model, held by the evaluator and never given to the route"
+    },
+    "seeds": [
+      140
+    ],
+    "budgets": {
+      "measurements": 19
+    },
+    "code": "d21f41b578f927233cd94ca93cb7c5685c1a6834b6ffa8e16bb463ea08b56a06",
+    "configuration": "27ff630d2e63c04d58b2cd99bad4dd03680feb6d5fe39321fac4955b928313b4",
+    "environment": {
+      "python": "3.14.7",
+      "numpy": "2.5.5",
+      "execution_mode": "live",
+      "label": "live measurement on the learner's own instrument"
+    }
+  },
+  "cycles": [
+    {
+      "number": 1,
+      "reason": "first cycle"
+    }
+  ],
+  "attempts": [
+    {
+      "id": "baseline-1",
+      "candidate": "baseline",
+      "cycle": 1,
+      "status": "inconclusive",
+      "diagnostics": [
+        "the phase does not cross -90 degrees within the sweep"
+      ],
+      "artifacts": [
+        {
+          "name": "raw samples",
+          "path": "raw.csv",
+          "sha256": "cee5c9f1cf51fe0edb0e66edf750c6f57ee1f4587d1680bb3be9a3b84fe1e951",
+          "kind": "raw"
+        }
+      ],
+      "prior": []
+    }
+  ],
+  "evaluations": [
+    {
+      "attempt": "baseline-1",
+      "evaluator": "physics-lab evaluator f138-frequency-response-1",
+      "correct": null,
+      "metrics": {
+        "points": 13.0,
+        "reference_f0_hz": 50329.21210448704,
+        "reference_q": 3.1622776601683795,
+        "largest_gain_deviation": 13.590542120945633
+      },
+      "resources": {
+        "measurements": 13
+      },
+      "depends_on": [
+        {
+          "name": "raw samples",
+          "path": "raw.csv",
+          "sha256": "cee5c9f1cf51fe0edb0e66edf750c6f57ee1f4587d1680bb3be9a3b84fe1e951",
+          "kind": "raw"
+        }
+      ],
+      "code": "d21f41b578f927233cd94ca93cb7c5685c1a6834b6ffa8e16bb463ea08b56a06",
+      "configuration": "27ff630d2e63c04d58b2cd99bad4dd03680feb6d5fe39321fac4955b928313b4"
+    }
+  ],
+  "reports": [],
+  "claims": [
+    {
+      "id": "resonance",
+      "text": "f0 and Q measured by this run agree with the closed form of the circuit within the evaluator's tolerances",
+      "scope": "this circuit, live mode, seed 140",
+      "runs": {
+        "baseline-1": true
+      },
+      "sources": []
+    }
+  ],
+  "frozen": [],
+  "finals": []
+}

@@ -238,3 +238,103 @@ def test_an_output_folder_that_is_not_empty_is_refused(inputs, tmp_path):
         )
         == 1
     )
+
+
+# A session whose sweeps lie in folders of their own (F155 part 2b, Issue
+# #619): the replaced field's file is a pattern, and the repository keeps
+# the files one export's list names.
+NESTED = """
+[dataset]
+id = "tiny-session"
+version = "0.1.0"
+title = "A tiny session"
+description = "One session folder with two sweeps."
+licence = "CC-BY-4.0"
+publication_date = "2026-01-02"
+doi = "NOT-YET-RESERVED"
+repository = "https://example.org/repo"
+
+[[dataset.creators]]
+name = "Doe, Jane"
+
+[[software]]
+commit = "0000000000000000000000000000000000000000"
+description = "the code"
+
+[exports]
+names = ["session"]
+
+[[replace]]
+file = "M*/run.json"
+field = ["run", "device", "serial"]
+value = "DEV-001"
+
+[repository]
+files = []
+
+[[repository.export]]
+export = "session"
+files = ["session.toml", "M*/run.json", "M2/raw.csv"]
+"""
+
+
+def make_session(folder: Path) -> None:
+    root = folder / "session"
+    for sweep in ("M1", "M2"):
+        (root / sweep).mkdir(parents=True)
+        run = {"run": {"device": {"serial": SECRET}, "started": sweep}}
+        (root / sweep / "run.json").write_text(json.dumps(run, indent=1) + "\n")
+        (root / sweep / "raw.csv").write_text(f"point,t_s\n1,{sweep}\n")
+    (root / "session.toml").write_text('[session]\nplugged_in = "x"\n')
+    (root / "note.md").write_text("a note\n")
+
+
+def test_a_pattern_replaces_the_field_in_every_sweep_and_lists_keep_one_exports_files(
+    tmp_path,
+):
+    make_session(tmp_path / "exports")
+    declaration = tmp_path / "nested.toml"
+    declaration.write_text(NESTED)
+    package = publish.package(declaration, tmp_path / "exports", tmp_path / "out")
+    assert package.removed == {SECRET}
+    tree = tmp_path / "out" / "tiny-session-0.1.0" / "exports" / "session"
+    for sweep in ("M1", "M2"):
+        run = json.loads((tree / sweep / "run.json").read_text())
+        assert run["run"]["device"]["serial"] == "DEV-001"
+    repository = tmp_path / "out" / "repository"
+    assert sorted(
+        p.relative_to(repository).as_posix()
+        for p in repository.rglob("*")
+        if p.is_file()
+    ) == [
+        publish.CITATION,
+        publish.MANIFEST,
+        publish.README,
+        "exports/session/M1/run.json",
+        "exports/session/M2/raw.csv",
+        "exports/session/M2/run.json",
+        "exports/session/session.toml",
+    ]
+    readme = (repository / publish.README).read_text()
+    assert "`session.toml`, `M*/run.json`, `M2/raw.csv` of `session`." in readme
+    assert "raw subsets" not in readme and "A raw subset" not in readme
+
+
+def test_a_pattern_of_one_exports_list_that_names_no_file_is_refused(tmp_path):
+    make_session(tmp_path / "exports")
+    declaration = tmp_path / "nested.toml"
+    declaration.write_text(NESTED.replace('"M2/raw.csv"', '"M3/raw.csv"'))
+    with pytest.raises(publish.PublishError, match=r"no file is M3/raw\.csv"):
+        publish.package(declaration, tmp_path / "exports", tmp_path / "out")
+    declaration.write_text(NESTED.replace('export = "session"', 'export = "other"'))
+    with pytest.raises(publish.PublishError, match="undeclared export other"):
+        publish.package(declaration, tmp_path / "exports", tmp_path / "out2")
+
+
+def test_the_pattern_matches_within_one_folder_and_a_literal_path_exactly():
+    assert publish.matches("M1/run.json", "M*/run.json")
+    assert not publish.matches("run.json", "M*/run.json")
+    assert not publish.matches("evaluation/run.json", "M*/run.json")
+    assert publish.matches("run.json", "run.json")
+    assert not publish.matches("M1/run.json", "run.json")
+    assert publish.matches("checkpoints/checkpoint.json", "checkpoints/checkpoint.json")

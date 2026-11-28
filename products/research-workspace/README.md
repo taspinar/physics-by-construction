@@ -191,6 +191,43 @@ that stopped before the physics lab wrote an export is recorded with an
 empty `directory` and its reason. A run that failed twice stops the
 session; the follow-up is then `inconclusive` with its reasons.
 
+## The follow-up's evidence (part 2b)
+
+The owner's bench session of 2026-11-28 is the dataset
+`ad3-rlc-coil-followup` (`docs/datasets/ad3-rlc-coil-followup.md`). Its
+repository part holds the session in the form above, so the registered
+rules can be applied to it from a clone, with no bench:
+
+```
+cp -R products/research-workspace/examples/coil-loss /tmp/coil-example
+mkdir /tmp/coil-example/session
+S=data/samples/ad3-rlc-coil-followup/exports/2026-11-28-coil-loss
+cp $S/session.toml $S/readings.toml /tmp/coil-example/session/
+cp -R $S/M0 $S/M0-repeat $S/M1 $S/M2 $S/M3 $S/M5 /tmp/coil-example/session/
+uv run --locked python -m pbc.products.research_workspace run \
+    --example /tmp/coil-example --project /tmp/coil-followup
+```
+
+The outcomes are those of the evaluation the supervisor made the same day
+(`evaluation-2026-11-28/` in the dataset): G1 `inconclusive`, G2
+`inconclusive`, the precondition not met (the conclusions scoped to the
+circuit of M1 to M5, G1 for the pilot `not evaluated`, G2 carried over),
+the deviation that M0 started 4 minutes after the plug-in, and R_s_bb
+reported at 3.08 ohm, outside 97.9 to 102.1 ohm. The multimeter did not
+measure resistance correctly in this session; the cause is not established.
+
+The verdicts and the revised claim are
+`examples/coil-loss/followup-2026-11-28.toml`. Each `[[decision]]` enters
+the project's log with the workspace's command, for example:
+
+```
+uv run --locked python -m pbc.products.research_workspace decide \
+    --project /tmp/coil-followup --subject "coil-loss claim" --decision revised \
+    --reason "<the reason of the record>" --revisit "<its revisit>" --by "<its by>"
+```
+
+A decision is not evidence: G1 and G2 stay `inconclusive` in the log.
+
 ## The routes
 
 - **Scripted:** the commands above. The scripted reviewer recomputes a fixed
@@ -241,8 +278,9 @@ session; the follow-up is then `inconclusive` with its reasons.
   commit, and time), `registration.toml` (the same registration as the
   workspace's data: five explanations, each with the outcome it predicts),
   `questions.toml` (the questions considered), `outcome-code.toml` (the
-  outcome code's identity pinned for the follow-up), and the two templates
-  of the bench session.
+  outcome code's identity pinned for the follow-up), the two templates
+  of the bench session, and `followup-2026-11-28.toml` (the verdicts and
+  the revised claim of the session of 2026-11-28, part 2b).
 - `fixtures/`: the replay fixture of the agent reviewer (a placeholder).
 
 Data: NASA COBE FIRAS / LAMBDA; Fixsen et al. 1996, ApJ 473, 576. We

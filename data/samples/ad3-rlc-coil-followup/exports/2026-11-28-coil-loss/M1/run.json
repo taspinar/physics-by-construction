@@ -1,0 +1,98 @@
+{
+  "product": "physics-lab",
+  "protocol": "f138-frequency-response-1",
+  "route": "baseline",
+  "status": "completed",
+  "diagnostics": [],
+  "run": {
+    "mode": "live",
+    "device": {
+      "device": "Digilent Analog Discovery 3",
+      "serial": "AD3-001",
+      "sdk": "WaveForms SDK 3.25.1",
+      "library": "/Library/Frameworks/dwf.framework/dwf",
+      "calibration": "the device's factory calibration, not adjusted; channel 1 (source) on the 5 V range, channel 2 (response) on the 50 V range, both against ground; the generator W1, a sine with offset 0 V, or a square wave between 0 V and the amplitude (amplitude and offset each half of it)",
+      "on_close": "stop",
+      "frequency_set_hz": "55967.7486308"
+    },
+    "configuration": {
+      "low_hz": 5000.0,
+      "high_hz": 200000.0,
+      "coarse_points": 13,
+      "refine_points": 6,
+      "amplitude_v": 1.0,
+      "periods": 8,
+      "samples_per_period": 64,
+      "seed": 140,
+      "agent_budget": 16,
+      "circuit_confirmed": true,
+      "route": "baseline",
+      "protocol": "f138-frequency-response-1",
+      "conditions_at_start": {
+        "pcb_temperature_c": 43.5,
+        "die_temperature_c": 57.472060821123364,
+        "usb_voltage_v": 5.074175824175824,
+        "usb_current_a": 0.6518296839636791,
+        "aux_voltage_v": 0.039377289377289376,
+        "aux_current_a": -0.008567611049000627
+      },
+      "conditions_at_end": {
+        "pcb_temperature_c": 43.5,
+        "die_temperature_c": 57.08746451465203,
+        "usb_voltage_v": 5.0818070818070815,
+        "usb_current_a": 0.6236148604634957,
+        "aux_voltage_v": 0.03968253968253968,
+        "aux_current_a": -0.008520270741114413
+      },
+      "circuit": {
+        "resistance_ohm": 100.0,
+        "inductance_h": 0.001,
+        "capacitance_f": 1e-08,
+        "declared": "nominal values of the prepared parts"
+      }
+    },
+    "units": {
+      "frequency": "Hz",
+      "amplitude": "V",
+      "time": "s",
+      "source": "V",
+      "response": "V",
+      "gain": "dimensionless (V/V)",
+      "phase": "degrees"
+    },
+    "processing": [
+      "each acquisition starts after the settling time and spans the asked number of periods at the asked rate, to within the realised rate",
+      "the device's divided sample clock realises a rate near the one asked, and the capture reports the realised rate; the phasor of each channel is the projection on cos and sin (pbc.electromagnetism.circuits.steady_phasor) only when the record spans a whole number of periods, otherwise a least-squares fit of a cosine, a sine, and a constant (pbc.products.physics_lab.protocol.fitted_phasor)",
+      "gain and phase of response / source",
+      "f0 where the phase crosses -90 degrees, linear in log frequency between the bracketing points; Q from their gains through the second-order response, averaged"
+    ],
+    "started": "2026-11-28T06:45:41Z",
+    "finished": "2026-11-28T06:45:42Z",
+    "new_experiment": true,
+    "operations": {
+      "accepted": 38,
+      "refused": 0
+    },
+    "label": "live measurement on the learner's own instrument"
+  },
+  "sample": null,
+  "check": {
+    "correct": false,
+    "note": "outside the tolerance of the closed form (f0 within 1%, Q within 3%)",
+    "metrics": {
+      "points": 19.0,
+      "reference_f0_hz": 50329.21210448704,
+      "reference_q": 3.1622776601683795,
+      "largest_gain_deviation": 0.5305686574125092,
+      "f0_hz": 50161.701295519684,
+      "q": 1.4856392781973136,
+      "f0_relative_error": -0.0033283018343220894,
+      "q_relative_error": -0.530199609948796
+    }
+  },
+  "candidate_answer": null,
+  "evidence": {
+    "file": "evidence.json",
+    "summary": "Attempts: 1, correct 0 of 1\n  completed: 1\n  failed: 0\n  inconclusive: 0\n  invalid: 0\n  missing: 0\nbaseline-1 [baseline, cycle 1]: completed, not correct, candidate's report none (unverified)\nclaim resonance: failed (this circuit, live mode, seed 140)"
+  }
+}

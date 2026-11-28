@@ -1,0 +1,413 @@
+id: ad3-rlc-coil-followup
+title: F155 coil-loss follow-up, the registered bench session of 2026-11-28 on the series RLC circuit of the F140 pilot
+  (Analog Discovery 3 sweeps, multimeter readings) and one diagnostic sweep of 2026-11-26
+source:
+  url: https://github.com/taspinar/physics-by-construction/issues/619
+  creator: Ahmet Taspinar (the project's owner, at the bench), with the physics lab's live mode (pbc.products.physics_lab)
+    and a Mastech MAS830BC multimeter; the supervising agent session attended and evaluated the session
+  version: 'Version 1.0.0 of the packaged dataset (data/publish/ad3-rlc-coil-followup.toml): the session of 2026-11-28
+    (six sweep exports M0, M0-repeat, M1, M2, M3, M5; session.toml; readings.toml; two notes; the evaluation of that
+    day) and the diagnostic sweep of 2026-11-26, as recorded, with the device serial replaced by AD3-001'
+  accessed: &accessed 2026-11-28
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'The owner''s standing decision of 2026-11-27 for the project''s own measurements (Issue #614,
+      https://github.com/taspinar/physics-by-construction/issues/614#issuecomment-7210910945), applied to this
+      dataset in the owner''s start of part 2b of 2026-11-28 (https://github.com/taspinar/physics-by-construction/issues/619);
+      the owner confirms it for this dataset on Issue #619 before the merge. The terms at
+      https://creativecommons.org/licenses/by/4.0/legalcode permit reproducing and sharing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'The owner''s decision of 2026-11-27 (Issue #614, issuecomment-7210910945), CC BY 4.0;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits sharing the material in whole
+      or in part; the split between the repository and the archive is the owner''s start of part 2b on Issue #619'
+  publication_of_figures:
+    answer: permitted
+    source: 'The owner''s decision of 2026-11-27 (Issue #614, issuecomment-7210910945), CC BY 4.0;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits producing and sharing adapted
+      material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'The owner''s decision of 2026-11-27 (Issue #614, issuecomment-7210910945), CC BY 4.0;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the creator, the licence, a link,
+      and an indication of changes (the device identifier, MANIFEST.tsv)'
+  attribution: Taspinar, A., 'The coil-loss follow-up on the series RLC circuit of the F140 pilot, bench session of
+    2026-11-28 (Analog Discovery 3, multimeter)', version 1.0.0, https://github.com/taspinar/physics-by-construction/issues/619,
+    CC BY 4.0; the device serial replaced by AD3-001, the repository's part a subset (MANIFEST.tsv).
+  figure_credit:
+    short: 'Data: A. Taspinar, F155 coil-loss follow-up (Analog Discovery 3), 2026-11-28, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creator, the licence, and
+      a link go with the shared material, so a figure saved without its page carries them on its face'
+artifacts:
+- name: raw.csv
+  type: raw-measured
+  description: Every sample of every record of a sweep (point, frequency, amplitude, time, channel 1 at W1, channel
+    2 at the probed node), in volts as the device returned them. Committed for the attempts the registered rules
+    read (M0-repeat, M1, M2, M3, M5); the early M0 (attempt 1) and the diagnostic sweep have theirs in the archive
+    only.
+- name: run.json
+  type: processed-measured
+  description: The run record of each sweep as the physics lab exported it - the protocol, the device (serial replaced
+    by AD3-001), the configuration with the registered input and the device's conditions at the start and end, the
+    units, the processing, the start and end times, and the evaluator's check against the closed form of the declared
+    circuit.
+- name: points.csv
+  type: processed-measured
+  description: One row per frequency of a sweep - the gain and phase of channel 2 over channel 1 from the least-squares
+    phasor fit of each record (the processing the registration names), as the physics lab wrote them.
+- name: evidence.json
+  type: processed-measured
+  description: The evidence log of each sweep (task, hypothesis, assumptions, protocol version, the code and configuration
+    digests, the attempt, the evaluation). The SHA-256 of raw.csv in it is the original file's.
+- name: report.md and frequency-response.svg
+  type: processed-measured
+  description: The physics lab's report and figure of each sweep, as exported (not edited).
+- name: readings.toml
+  type: raw-measured
+  description: The fifteen readings of M4 on the 200 ohm range of the multimeter (Z1, R_dc_bb, R_dc, R_s_bb, Z2,
+    three each), each with the meter, the range, the resolution, the registered specification, and the time, as the
+    owner wrote them.
+- name: session.toml, M4-first-attempt-invalid.md, meter-check-exploratory.md
+  type: raw-measured
+  description: The session's records as the owner and the supervisor wrote them - the plug-in time, the outcome
+    code's pin, the room temperature, every attempt with its outcome and reason; the first set of readings of M4,
+    taken on the 200 mV range (every value 0.0, used by no rule); the check of the meter after M5, outside the
+    registration.
+- name: evaluation-2026-11-28
+  type: processed-measured
+  description: The evaluation of the session by the Research Workspace at commit a1109da (outcome code 974bf992...,
+    the pinned one) - run.json, ledger.json, log.json, report.md; its view.html is in the archive only. Its run.json
+    records the SHA-256 of the session's original files.
+calibration: 'The AD3: the factory calibration, not adjusted (each run record says so); channel 1 on the 5 V range,
+  channel 2 on the 50 V range, both against ground. M3 measures the two channels'' relative gain and phase at the
+  13 frequencies on this device. The multimeter (Mastech MAS830BC) is not calibrated; its specification is the
+  registered one (0.8 % of the reading + 3 digits on the 200 ohm range, from the manual of the MAS830B). In this
+  session the meter did not measure resistance correctly: R_s_bb read 8.3, 7.6, 8.8 ohm for a resistor of 100 ohm
+  +- 1 %, and the check after M5 read the loose resistor at 10.1 ohm; the cause is not established.'
+schema: 'Under exports/2026-11-28-coil-loss/: session.toml, readings.toml, the two notes, one folder per sweep attempt
+  (M0, M0-repeat, M1, M2, M3, M5) with run.json, points.csv (frequency_hz, amplitude_v, gain, phase_deg), evidence.json,
+  report.md, frequency-response.svg, and raw.csv (point, frequency_hz, amplitude_v, t_s, source_v, response_v) where
+  committed, and evaluation-2026-11-28/ (run.json, ledger.json, log.json, report.md). Under
+  exports/2026-11-26-pilot-input-diagnostic/: the same files of one sweep, without raw.csv. MANIFEST.tsv: path, bytes,
+  sha256, original_sha256, derivation.'
+units: 'Stated in run.json: frequency Hz, amplitude V, time s, source and response V, gain V/V, phase degrees; the
+  readings in ohm; temperatures in degrees C.'
+cadence: 'M0 (attempt 1) at 06:01:25 UTC on 2026-11-28, M0-repeat at 06:45:10, M1 06:45:41, M2 06:46:22, M3 06:47:19,
+  the readings of M4 from 07:13 to 07:20 (08:13 to 08:20 local), M5 at 07:25:54. A sweep is 13 coarse points from
+  5 kHz to 200 kHz (log-spaced, 8 periods of 64 samples each, 1 V), with 6 refinements near the -90 degree crossing
+  at the capacitor node (M0, M1, the diagnostic). The diagnostic sweep at 12:36:51 UTC on 2026-11-26.'
+coordinates: 'One breadboard series RLC circuit, W1 -> 100 ohm -> coil (nominal 1 mH) -> node A -> capacitor (nominal
+  10 nF) -> ground, the pilot''s by the owner''s statement (the parts not touched since 2026-11-26). Probes: M0, M1 and
+  the diagnostic at node A; M2 and M5 at the R-L node; M3 both at W1. Device AD3-001 (an Analog Discovery 3; the
+  serial replaced), WaveForms SDK 3.25.1. Plugged in at 06:57 local (+01:00), the room 18.5 degrees C at 07:00 (the
+  wall thermostat); unplugged for M4 at about 07:50 local and plugged in again shortly before M5.'
+masks: 'None: every attempt, reading, and note is kept; the early M0, the first set of readings of M4 (on the wrong
+  range), and the meter check after M5 included. Only their roles differ, as session.toml and the notes record them.'
+uncertainty: 'The registered model of the readings (the plan''s registration, "Meter readings") and the standard
+  errors of the phasor fits, as the Research Workspace applies them; no per-point uncertainty is in points.csv. The
+  meter''s readings in this session are not consistent with the 100 ohm resistor (R_s_bb minus the zero is about
+  3 ohm), so every registered quantity that rests on R_s_bb (R_L, R_L0, L, C, Rise, D) rests on a reading the check
+  of the registration puts outside its band.'
+size:
+  description: 'The repository holds 51 files, 2,794,668 bytes: every file of both folders but the raw samples of the
+    early M0 and of the diagnostic sweep and the evaluation''s view.html, with MANIFEST.tsv, README.md, CITATION.cff.
+    The archive holds all 51 files of the two folders and the packager''s three (54 files), 1,194,207 bytes
+    compressed.'
+format: TOML, CSV (plain text), JSON, Markdown, SVG; the archive a ZIP of the same
+reader: pbc.data.reference.ad3_rlc_coil_followup (attempts, readings, points, the tomllib, csv and json modules of
+  the standard library); the registered rules are pbc.products.research_workspace.followup.evaluate with the pinned
+  outcome code. No new dependency.
+archive:
+  file: ad3-rlc-coil-followup-1.0.0.zip
+  bytes: 1194207
+  sha256: d892cf68bf27c9e71d27f35ce31e60a3d92b6285270576668203df44a4286273
+  doi: 10.5281/zenodo.24622131 (reserved by the owner in the Zenodo draft on 2026-11-28; the owner checks the
+    draft's metadata and files and publishes it)
+  note: Documentation only; no check, test, or build step reads the archive or Zenodo. Made by pbc.data.publish
+    from the declaration; the same input gives the same bytes.
+samples:
+- path: CITATION.cff
+  sha256: 8165eeee6cdb4a9f24dc7db3cccd2b93de63eb9182ca54c68eb0745afeef2d2b
+  bytes: 630
+  derivation: written by the packager pbc.data.publish from data/publish/ad3-rlc-coil-followup.toml
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: MANIFEST.tsv
+  sha256: c4c152a17e634fb37fd98d193416c436f9c69ec019498d48997d594aa55fb0ba
+  bytes: 7165
+  derivation: written by the packager (path, bytes, SHA-256, the original's SHA-256 where changed, and the derivation of every other file)
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: README.md
+  sha256: 676ac89cb139e93309c79cac38611aacc671a9b50bb18bf149b8faa61d8e4d95
+  bytes: 7060
+  derivation: written by the packager pbc.data.publish from data/publish/ad3-rlc-coil-followup.toml
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-26-pilot-input-diagnostic/evidence.json
+  sha256: 2e56ccbd63fd68d66df3b202d51a70c820e1223f1ff6d77ede091b7fde3f00f6
+  bytes: 3013
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-26-pilot-input-diagnostic/frequency-response.svg
+  sha256: 44ac7927312692a59e60041933d99a24a50f912d8581b90b2e872b2ab6ecabc8
+  bytes: 53976
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-26-pilot-input-diagnostic/points.csv
+  sha256: 5ecaf439f1e29f2ccbd446f6f212e3d5c5f91ad713c37f034d6f24cc33f8b69d
+  bytes: 881
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-26-pilot-input-diagnostic/report.md
+  sha256: 55fbe256bd9eb03382842fa24d8164d4131ca1dd11b1c80cee5cb360f9afc15b
+  bytes: 2520
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-26-pilot-input-diagnostic/run.json
+  sha256: 28ab3586344393134b432863257e8dbb3f35a6b201cfe429ca15b9ff441da420
+  bytes: 3942
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0/evidence.json
+  sha256: bfad2cc24b98fdc6f0076746b4558b3f49933ca61fd0cdf48c274cc523be8427
+  bytes: 3011
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0/frequency-response.svg
+  sha256: 510a26ef718c394a82f93261039400020179372813f7b702aa2327242a3876fe
+  bytes: 53971
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0/points.csv
+  sha256: 823db794411f3672ed562c7d76340a0e3b7e8828d91434fb97bb110fe284a618
+  bytes: 878
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0/report.md
+  sha256: 49b4014ffa64e777e1cd810bf03559f2f650485b858e9b3a657e10371e09ce83
+  bytes: 2519
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0/run.json
+  sha256: 4eb80b37582587fadeee30e5f93083ece77f6a657642f562e497768f19915f4c
+  bytes: 3947
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0-repeat/evidence.json
+  sha256: 1c23216125f66808cb4a407d77e6ae883abc9579eda4fca4c2cd83d8907c9120
+  bytes: 3014
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0-repeat/frequency-response.svg
+  sha256: 3efaf08d39bccf02fe3f3eaf701eec3479c222a9094330724eb7bfeccaf5c6d2
+  bytes: 53979
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0-repeat/points.csv
+  sha256: b471bb1a406b1fbe5812c7cd6e54f42063c9c90e970fd0322200b73333c13866
+  bytes: 879
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0-repeat/raw.csv
+  sha256: 051e834c029f29cbf34b218f97e07a5701576032814799e1cdbbbf376e9839ce
+  bytes: 568420
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0-repeat/report.md
+  sha256: 6443f5b4e2bc4863d42f2ab46189337da1c5c340379cda6b8a6ed269dfb409ba
+  bytes: 2519
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M0-repeat/run.json
+  sha256: 22c5b819e071bd0003149fca26f924c16dfb27a3a0d1113f0f40a4bcf1cd89ea
+  bytes: 3947
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M1/evidence.json
+  sha256: 9748079b81395314044512a3a531ff606182364944ec4f4f9ffe7adb0781ae24
+  bytes: 3014
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M1/frequency-response.svg
+  sha256: 5409e105e19abb134c8cfbb6f2ba79c0085d6e04d6911a8c187f06385688c920
+  bytes: 53976
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M1/points.csv
+  sha256: f9749eb0bb20e5f5c584de0284f05b55252a47e382b6028679c3f012e1251f64
+  bytes: 878
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M1/raw.csv
+  sha256: 5ef7c164200bb74316c066b906a3296159afea2722bd8d1aee174b397d377846
+  bytes: 568534
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M1/report.md
+  sha256: 0bb9cfbd7678697f907ad5aa556db041cf6eccdccb623fd0badee1159a42b25c
+  bytes: 2519
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M1/run.json
+  sha256: 5033dbb395797d245a93318d3579a4df6b2b9c55f78e16ce46d6f054a051d894
+  bytes: 3947
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M2/evidence.json
+  sha256: c260611673b791b6c124c867bb796725ab5a7ae3a1b139d4be66098b02fc5ee6
+  bytes: 2916
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M2/frequency-response.svg
+  sha256: 72c488cd3b826073aca8fe88300c5256e25c21aea1518935fa037eff4e4a04c2
+  bytes: 51028
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M2/points.csv
+  sha256: 42470fbd3c8527f4e432fa7cddedff13e5ac6174268b7366f488199864a39725
+  bytes: 612
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M2/raw.csv
+  sha256: a7ee271c75a1b6b0cefd886dcf169277229f6f466df266daaa311c47ca8ad2d5
+  bytes: 386911
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M2/report.md
+  sha256: 4d1170012a4375a16bc60396df017c562c90337debabdc55391dddfb678d2922
+  bytes: 2253
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M2/run.json
+  sha256: e7b4b902cfd8ea0ed8a239618930ab952e34a3a3b2e12270b2d2b4cdc2596b6c
+  bytes: 3891
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M3/evidence.json
+  sha256: 54367430ba410821d6e24dcb0ada9598b83ae89ec1cce1b3a2fd3f36cca42ca2
+  bytes: 2916
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M3/frequency-response.svg
+  sha256: e2eacdb21bc3373e85b02b513a212a4ac8d86494035a738976e455166bf5edb8
+  bytes: 51085
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M3/points.csv
+  sha256: 47520f226f2f18349eda256e2c3a28bcac6f9d82071323d697adf5d5c4e45a70
+  bytes: 629
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M3/raw.csv
+  sha256: cee5c9f1cf51fe0edb0e66edf750c6f57ee1f4587d1680bb3be9a3b84fe1e951
+  bytes: 386772
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M3/report.md
+  sha256: 6cf26996348b5336a7b1e07f54bdebcf9c38cb320b883fcb41bbe7c1bcf93333
+  bytes: 2252
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M3/run.json
+  sha256: 128b2e2d41793b2cb9a69a0805d0b657e64a764ea66f5afd9f49a1a56c0510e0
+  bytes: 3889
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M4-first-attempt-invalid.md
+  sha256: 905aa6d076d0edc37f7633f3ecc820f72c565a920c68de872c717b8ca306d22c
+  bytes: 1916
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M5/evidence.json
+  sha256: e6fc5e6931938cd6f1fc6259714b285ab2aa613a8cb3f673a10abba7a48e0a0e
+  bytes: 2916
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M5/frequency-response.svg
+  sha256: e9ca395b832ad387d8742ed7e6c94a383fd9521870893dc9cd4d08bc5f6279d4
+  bytes: 51038
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M5/points.csv
+  sha256: ff1451f5f35e75e505e3b0e2695d5eee635ab4e54f793d2a0b07b511d001bb18
+  bytes: 614
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M5/raw.csv
+  sha256: f1764da0aea8fccf2d4068a17e0fbd29cb8523d59f43f080828edbfd807817ac
+  bytes: 386486
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M5/report.md
+  sha256: f16fba9940b542f2eca49f0ec99632b3eb8fe9265b118f05cad7e510ba7ac00e
+  bytes: 2253
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/M5/run.json
+  sha256: 831367661d4b05adbfd26150d1ccb7f7eb13749f0a87def5d14da6c5cdbf1f53
+  bytes: 3894
+  derivation: the file as recorded with run.device.serial replaced by AD3-001 (pbc.data.publish); the original's SHA-256 in MANIFEST.tsv
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/evaluation-2026-11-28/ledger.json
+  sha256: 7d3fd745c7487563bd94e91515b58b23c7c4b76a7e628e5656779ea6fb9994ed
+  bytes: 10463
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/evaluation-2026-11-28/log.json
+  sha256: cb3901ef0a04c93ca4e23e40b0c9b773b285af5d7e3e1ccc543693bbc50be245
+  bytes: 2904
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/evaluation-2026-11-28/report.md
+  sha256: 5757d4431aabc7fa4a71621fc4ecb1e2f9811ba82aacb7a1f1f292133a0c7fc1
+  bytes: 13011
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/evaluation-2026-11-28/run.json
+  sha256: 69f9a85dd204381471f8f1e2a21dcf85ff8d7a35ec5b381d3fedd4c2ef4752db
+  bytes: 6740
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/meter-check-exploratory.md
+  sha256: 9ccf978af34c72cd2cda37a3831e5ca2148f7525fdca9da84ae1ae392a19d475
+  bytes: 994
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/readings.toml
+  sha256: f8ea7862b0f6c6f9b28bc30541467810fbfd0d712d31faa98e187a02e43bfd82
+  bytes: 3749
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+- path: exports/2026-11-28-coil-loss/session.toml
+  sha256: 1fc0c2e1c43aa207707d46b7d408f4c378de074781edd9fe6fcbcedbfa07c6ab
+  bytes: 3397
+  derivation: the recorded file, byte for byte
+  test: tests/unit/test_data_ad3_rlc_coil_followup.py::test_ad3_rlc_coil_followup_sample_parses
+estimates:
+  runtime: 'Reference figure: about 3 s with the interpreter start. The CI evaluation of the session by the registered
+    rules (the original track of the Research Workspace, its simulated controls included) and the other tests of the
+    dataset: about 10 s.'
+  memory: About 150 MB peak resident for the figure.
+  page_payload: 2.8 MB committed, none of it sent to a reader's browser.
+  ci: 'Offline: the committed files; the evaluation needs no device, no SDK, no meter, and no network.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: six sweep exports of 2026-11-28 and one of 2026-11-26, the session''s records, the fifteen
+    readings of M4, the two notes, and the evaluation of 2026-11-28. The registered rules applied to the repository''s
+    part give the evaluation''s outcomes, quantities, report, ledger and log (tests/unit/test_data_ad3_rlc_coil_followup.py).'
+  - 'Published as recorded, with the failed and invalid attempts: the early M0, the first set of readings of M4 on
+    the wrong range, and the meter check after M5 are kept and described; nothing was selected by its result.'
+  - 'The owner''s own measurements under CC BY 4.0 by the owner''s decision of 2026-11-27 (Issue #614), applied to
+    this dataset in the start of part 2b on Issue #619.'
+dossier: docs/datasets/ad3-rlc-coil-followup.md
+reference_module: ad3_rlc_coil_followup
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'F155 coil-loss follow-up, the registered bench session of 2026-11-28 on an Analog Discovery 3 (Issue #619)'
+  kind: sweep exports (run records, points, evidence logs, raw samples), multimeter readings, and the session's records
+    of the project's own registered measurement
